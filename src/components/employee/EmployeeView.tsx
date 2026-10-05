@@ -35,6 +35,7 @@ interface EmployeeViewProps {
   onMarkLeave: (data: { isHalfDay: boolean; halfType?: 'first_half' | 'second_half'; reason: string; comment?: string }) => void;
   onSaveWorkReport: (text: string) => void;
   onSubmitCorrection: (data: any) => void;
+  onLogout: () => void;
 }
 
 export function EmployeeView({
@@ -48,6 +49,7 @@ export function EmployeeView({
   onMarkLeave,
   onSaveWorkReport,
   onSubmitCorrection,
+  onLogout,
 }: EmployeeViewProps) {
   const [modalType, setModalType] = useState<'checkin' | 'checkout' | null>(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
@@ -112,28 +114,66 @@ export function EmployeeView({
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
+    <div className="w-full min-h-screen flex flex-col bg-slate-950 text-slate-100 relative">
+      {/* Native Mobile App Header */}
+      <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/logo.png"
+            alt="puchIn"
+            className="w-8 h-8 rounded-xl object-contain shadow-xs"
+          />
+          <div>
+            <div className="font-extrabold text-base tracking-tight text-white leading-tight">
+              puchIn
+            </div>
+            <div className="text-[10px] text-slate-400 font-medium">Workforce Portal</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs transition hover:bg-indigo-500"
+            title="Profile"
+          >
+            {currentUser.fullName.charAt(0)}
+          </button>
+          <button
+            onClick={onLogout}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-900 transition cursor-pointer"
+            title="Sign Out"
+            aria-label="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
       {/* Scrollable Main Area */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      <div className="flex-1 overflow-y-auto overscroll-contain pb-24">
         {/* Mobile Header Banner */}
-        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 text-white p-5 pt-7 rounded-b-3xl shadow-lg relative overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-700 via-indigo-800 to-slate-900 text-white p-5 rounded-b-3xl shadow-lg relative overflow-hidden border-b border-slate-800/40">
           <div className="relative z-10 flex items-center justify-between">
             <div>
-              <span className="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider block">
+              <span className="text-[11px] font-semibold text-indigo-300 uppercase tracking-wider block">
                 Employee Portal
               </span>
-              <h2 className="text-xl font-bold tracking-tight">{currentUser.fullName}</h2>
-              <p className="text-xs text-indigo-100/90 mt-0.5">
+              <h2 className="text-xl font-bold tracking-tight text-white">{currentUser.fullName}</h2>
+              <p className="text-xs text-indigo-200/90 mt-0.5">
                 {currentUser.designationTitle} &bull; {currentUser.departmentName}
               </p>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center font-bold text-lg shadow-inner">
-              {currentUser.fullName.charAt(0)}
+            <div className="text-right">
+              <span className="text-[10px] text-indigo-300 block font-mono">ID: {currentUser.employeeId}</span>
+              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Active
+              </span>
             </div>
           </div>
 
           {/* Decorative Glow */}
-          <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
         </div>
 
         {/* Main Tab Views */}
@@ -351,27 +391,39 @@ export function EmployeeView({
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-slate-500">Role</span>
-                <span className="font-semibold uppercase text-indigo-600 dark:text-indigo-400">{currentUser.role}</span>
+                <span className="font-semibold uppercase text-indigo-400">{currentUser.role}</span>
               </div>
-              <div className="flex justify-between py-1.5">
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-slate-500">Account Status</span>
-                <span className="font-semibold text-emerald-600">Active</span>
+                <span className="font-semibold text-emerald-400">Active</span>
               </div>
+            </div>
+
+            {/* Prominent Sign Out Button */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={onLogout}
+                className="w-full py-3 px-4 bg-rose-600/10 hover:bg-rose-600/20 active:scale-[0.99] border border-rose-500/30 text-rose-400 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out from puchIn</span>
+              </button>
             </div>
           </div>
         )}
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="flex-shrink-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-30">
-        <div className="grid grid-cols-3">
+      {/* Mobile Bottom Navigation Bar (Fixed) */}
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-slate-900/90 backdrop-blur-xl border-t border-slate-800/80 z-30 shadow-2xl">
+        <div className="grid grid-cols-3 py-1">
           <button
             onClick={() => setActiveTab('home')}
-            className={`py-2.5 flex flex-col items-center gap-1 transition ${
+            className={`py-2 flex flex-col items-center gap-1 transition ${
               activeTab === 'home'
-                ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                ? 'text-red-500 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Clock className="w-5 h-5" />
@@ -379,10 +431,10 @@ export function EmployeeView({
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-2.5 flex flex-col items-center gap-1 transition ${
+            className={`py-2 flex flex-col items-center gap-1 transition ${
               activeTab === 'history'
-                ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                ? 'text-red-500 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <History className="w-5 h-5" />
@@ -390,20 +442,15 @@ export function EmployeeView({
           </button>
           <button
             onClick={() => setActiveTab('profile')}
-            className={`py-2.5 flex flex-col items-center gap-1 transition ${
+            className={`py-2 flex flex-col items-center gap-1 transition ${
               activeTab === 'profile'
-                ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                ? 'text-red-500 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <User className="w-5 h-5" />
             <span className="text-[10px]">Profile</span>
           </button>
-        </div>
-
-        {/* Home Indicator Bar */}
-        <div className="flex justify-center pb-2 pt-0.5">
-          <div className="w-28 h-1 bg-slate-300 dark:bg-slate-700 rounded-full" />
         </div>
       </nav>
 

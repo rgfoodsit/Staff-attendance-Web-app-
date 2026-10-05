@@ -274,66 +274,53 @@ export default function Home() {
     (r) => r.profileId === currentUser.id && r.reportDate === new Date().toISOString().split('T')[0]
   );
 
+  const isEmployee = currentUser.role === 'employee';
+
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-100">
-      {/* Left Collapsible Hover Sidebar with Top-Left Logo and Bottom Profile Switch */}
-      <LeftSidebar
-        currentUser={currentUser}
-        onRoleChange={handleRoleChange}
-        notifications={notifications}
-        onNotificationsRead={handleNotificationsRead}
-        onLogout={() => {
-          AppStore.logout();
-          setIsAuthenticated(false);
-        }}
-        activeTab={desktopActiveTab}
-        onTabChange={setDesktopActiveTab}
-        pendingCorrectionsCount={corrections.filter((c) => c.status === 'pending').length}
-      />
-
-      {/* Main View Area */}
-      <main className="flex-1 ml-16 min-w-0">
-        {currentUser.role === 'employee' ? (
-          /* Mobile Web Employee Experience */
-          <div className="py-6 px-4 flex flex-col items-center justify-center min-h-screen">
-            <div className="w-full max-w-sm sm:max-w-[400px]">
-              {/* Device Notice Banner */}
-              <div className="mb-3 px-3 py-2 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 rounded-xl text-[11px] text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <strong>PRD Rule #4.1:</strong> Mobile Web Viewport for Employees
-                </span>
-                <span className="text-[10px] bg-indigo-200/50 dark:bg-indigo-900/60 px-2 py-0.5 rounded-full font-semibold">
-                  Camera + GPS
-                </span>
-              </div>
-
-              {/* Mobile Phone Mockup Frame */}
-              <div className="relative w-full h-[780px] max-h-[82vh] rounded-[2.5rem] border-[10px] border-slate-900 dark:border-slate-800 shadow-2xl overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col ring-1 ring-slate-900/20">
-                {/* Dynamic Island / Speaker Notch Pill */}
-                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-900 dark:bg-slate-800 rounded-full z-40 flex items-center justify-center gap-2 pointer-events-none shadow-xs">
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-950 border border-slate-700/60" />
-                  <div className="w-8 h-1 bg-slate-700/80 rounded-full" />
-                </div>
-
-                <EmployeeView
-                  currentUser={currentUser}
-                  todayRecord={todayRecord}
-                  historyRecords={employeeHistory}
-                  todayReport={todayReport}
-                  settings={settings}
-                  onCheckIn={handleCheckIn}
-                  onCheckOut={handleCheckOut}
-                  onMarkLeave={handleMarkLeave}
-                  onSaveWorkReport={handleSaveWorkReport}
-                  onSubmitCorrection={handleSubmitCorrection}
-                />
-              </div>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      {isEmployee ? (
+        /* Native Full-Screen Mobile App View for Employees */
+        <div className="w-full min-h-screen flex flex-col items-center">
+          <div className="w-full max-w-lg min-h-screen bg-slate-950 flex flex-col">
+            <EmployeeView
+              currentUser={currentUser}
+              todayRecord={todayRecord}
+              historyRecords={employeeHistory}
+              todayReport={todayReport}
+              settings={settings}
+              onCheckIn={handleCheckIn}
+              onCheckOut={handleCheckOut}
+              onMarkLeave={handleMarkLeave}
+              onSaveWorkReport={handleSaveWorkReport}
+              onSubmitCorrection={handleSubmitCorrection}
+              onLogout={() => {
+                AppStore.logout();
+                setIsAuthenticated(false);
+              }}
+            />
           </div>
-        ) : (
-          /* Desktop Web Management Experience (HR, Admin) */
-          <div>
+        </div>
+      ) : (
+        /* Desktop Web Management Experience (HR, Admin) */
+        <div className="min-h-screen flex">
+          {/* Left Collapsible Hover Sidebar for Desktop Roles */}
+          <div className="hidden md:block">
+            <LeftSidebar
+              currentUser={currentUser}
+              onRoleChange={handleRoleChange}
+              notifications={notifications}
+              onNotificationsRead={handleNotificationsRead}
+              onLogout={() => {
+                AppStore.logout();
+                setIsAuthenticated(false);
+              }}
+              activeTab={desktopActiveTab}
+              onTabChange={setDesktopActiveTab}
+              pendingCorrectionsCount={corrections.filter((c) => c.status === 'pending').length}
+            />
+          </div>
+
+          <main className="flex-1 md:ml-16 min-w-0">
             <DesktopManagementView
               currentUser={currentUser}
               attendanceRecords={attendanceRecords}
@@ -367,9 +354,9 @@ export default function Home() {
                 refreshState();
               }}
             />
-          </div>
-        )}
-      </main>
+          </main>
+        </div>
+      )}
     </div>
   );
 }
