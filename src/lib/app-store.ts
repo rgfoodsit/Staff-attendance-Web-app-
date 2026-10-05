@@ -60,15 +60,33 @@ export class AppStore {
 
   // Current User Session
   static getCurrentUser(): UserProfile {
-    const user = this.getItem<UserProfile>(STORAGE_KEYS.CURRENT_USER, INITIAL_PROFILES[0]);
+    const user = this.getItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
     if (!user || !['employee', 'hr', 'admin'].includes(user.role)) {
       return INITIAL_PROFILES[0];
     }
     return user;
   }
 
+  static getSessionUser(): UserProfile | null {
+    if (!this.isClient) return null;
+    const user = this.getItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
+    if (!user || !['employee', 'hr', 'admin'].includes(user.role)) {
+      return null;
+    }
+    return user;
+  }
+
   static setCurrentUser(user: UserProfile): void {
     this.setItem(STORAGE_KEYS.CURRENT_USER, user);
+  }
+
+  static logout(): void {
+    if (!this.isClient) return;
+    try {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    } catch (e) {
+      console.error('Logout error', e);
+    }
   }
 
   static switchRole(role: UserRole): UserProfile {

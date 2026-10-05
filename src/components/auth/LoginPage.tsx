@@ -21,12 +21,22 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setError(null);
 
     const profiles = AppStore.getProfiles();
+    const query = employeeId.trim().toLowerCase();
     const user = profiles.find(
-      (p) => p.employeeId.toLowerCase() === employeeId.trim().toLowerCase()
+      (p) =>
+        p.employeeId.toLowerCase() === query ||
+        p.fullName.toLowerCase() === query ||
+        p.role.toLowerCase() === query
     );
 
     if (!user) {
-      setError('Employee ID not recognized. Please verify or use a demo account below.');
+      setError('Employee ID or Username not recognized. Please check your credentials.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!password || password.trim().length < 3) {
+      setError('Please enter your password.');
       setIsLoading(false);
       return;
     }
@@ -41,11 +51,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     AppStore.setCurrentUser(user);
     onLoginSuccess(user);
     setIsLoading(false);
-  };
-
-  const handleQuickDemoLogin = (role: UserRole) => {
-    const user = AppStore.switchRole(role);
-    onLoginSuccess(user);
   };
 
   return (
@@ -132,41 +137,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 >
                   Forgot password ?
                 </button>
-              </div>
-
-              {/* Or Divider */}
-              <div className="relative flex items-center justify-center py-1">
-                <div className="border-t border-slate-200 w-full" />
-                <span className="bg-white px-3 text-xs text-slate-400 font-medium absolute">
-                  or
-                </span>
-              </div>
-
-              {/* Instant Role Demo Picker */}
-              <div className="space-y-1">
-                <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 border border-slate-200 rounded-xl text-center">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('employee')}
-                    className="py-2 text-[11px] font-semibold rounded-lg hover:bg-white hover:shadow-xs transition text-slate-700"
-                  >
-                    Employee
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('hr')}
-                    className="py-2 text-[11px] font-semibold rounded-lg hover:bg-white hover:shadow-xs transition text-slate-700"
-                  >
-                    HR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('admin')}
-                    className="py-2 text-[11px] font-semibold rounded-lg hover:bg-white hover:shadow-xs transition text-slate-700"
-                  >
-                    Admin
-                  </button>
-                </div>
               </div>
 
               {/* Vibrant Red Login Button */}

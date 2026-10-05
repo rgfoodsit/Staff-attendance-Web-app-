@@ -12,7 +12,6 @@ import {
   User,
   LogOut,
   Bell,
-  Check,
   ChevronUp,
   Smartphone,
   ShieldCheck,
@@ -22,7 +21,7 @@ import { UserProfile, UserRole, InAppNotification } from '@/types';
 
 interface LeftSidebarProps {
   currentUser: UserProfile;
-  onRoleChange: (role: UserRole) => void;
+  onRoleChange?: (role: UserRole) => void;
   notifications: InAppNotification[];
   onNotificationsRead: () => void;
   onLogout: () => void;
@@ -62,11 +61,6 @@ export function LeftSidebar({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleRoleSelect = (role: UserRole) => {
-    setShowProfileMenu(false);
-    onRoleChange(role);
-  };
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 z-40 w-16 hover:w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between py-3 transition-all duration-300 ease-in-out group shadow-xl hover:shadow-2xl overflow-visible select-none">
@@ -346,27 +340,6 @@ export function LeftSidebar({
               )}
             </div>
 
-            {/* Role Switcher Section */}
-            <div className="space-y-1 pt-1 border-t border-slate-800">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block px-1 mb-1">
-                Switch Role (Demo)
-              </span>
-              {(['employee', 'hr', 'admin'] as UserRole[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => handleRoleSelect(r)}
-                  className={`w-full px-2.5 py-1.5 text-xs rounded-xl flex items-center justify-between capitalize transition ${
-                    currentUser.role === r
-                      ? 'bg-indigo-600 text-white font-semibold shadow-xs'
-                      : 'text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <span className="capitalize">{r === 'hr' ? 'HR Portal' : r === 'admin' ? 'Admin Portal' : 'Employee (Mobile)'}</span>
-                  {currentUser.role === r && <Check className="w-3.5 h-3.5" />}
-                </button>
-              ))}
-            </div>
-
             {/* Logout Action */}
             <div className="pt-2 border-t border-slate-800">
               <button
@@ -374,7 +347,7 @@ export function LeftSidebar({
                   setShowProfileMenu(false);
                   onLogout();
                 }}
-                className="w-full px-2.5 py-1.5 text-xs text-rose-400 hover:bg-rose-950/40 rounded-xl flex items-center gap-2 font-medium transition"
+                className="w-full px-2.5 py-2 text-xs text-rose-400 hover:bg-rose-950/40 rounded-xl flex items-center gap-2 font-medium transition cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>

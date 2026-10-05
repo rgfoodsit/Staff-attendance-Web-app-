@@ -22,7 +22,7 @@ import { Smartphone, Laptop, AlertCircle } from 'lucide-react';
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<UserProfile>(AppStore.getCurrentUser());
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
@@ -52,6 +52,14 @@ export default function Home() {
   };
 
   useEffect(() => {
+    const sessionUser = AppStore.getSessionUser();
+    if (sessionUser) {
+      setCurrentUser(sessionUser);
+      setIsAuthenticated(true);
+      setIsMobilePreview(sessionUser.role === 'employee');
+    } else {
+      setIsAuthenticated(false);
+    }
     refreshState();
     setMounted(true);
 
@@ -274,7 +282,10 @@ export default function Home() {
         onRoleChange={handleRoleChange}
         notifications={notifications}
         onNotificationsRead={handleNotificationsRead}
-        onLogout={() => setIsAuthenticated(false)}
+        onLogout={() => {
+          AppStore.logout();
+          setIsAuthenticated(false);
+        }}
         activeTab={desktopActiveTab}
         onTabChange={setDesktopActiveTab}
         pendingCorrectionsCount={corrections.filter((c) => c.status === 'pending').length}
