@@ -13,6 +13,30 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/login',
+        destination: '/',
+        permanent: false,
+      },
+      {
+        source: '/portal',
+        destination: '/',
+        permanent: false,
+      },
+      {
+        source: '/dashboard',
+        destination: '/',
+        permanent: false,
+      },
+      {
+        source: '/attendance',
+        destination: '/',
+        permanent: false,
+      },
+    ];
+  },
   webpack: (config, { dev, isServer }) => {
     // Avoid Windows pack-cache file locking rename ENOENT errors
     if (dev) {
