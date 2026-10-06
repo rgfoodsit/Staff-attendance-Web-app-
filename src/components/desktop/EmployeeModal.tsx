@@ -14,6 +14,7 @@ interface EmployeeModalProps {
   onSave: (userData: {
     fullName: string;
     employeeId: string;
+    email?: string;
     departmentId: string;
     departmentName: string;
     designationId: string;
@@ -34,6 +35,7 @@ export function EmployeeModal({
 }: EmployeeModalProps) {
   const [fullName, setFullName] = useState(editingUser?.fullName || '');
   const [employeeId, setEmployeeId] = useState(editingUser?.employeeId || '');
+  const [email, setEmail] = useState('');
   const [departmentId, setDepartmentId] = useState(editingUser?.departmentId || departments[0]?.id || '');
   const [designationId, setDesignationId] = useState(editingUser?.designationId || designations[0]?.id || '');
   const [role, setRole] = useState<UserRole>(editingUser?.role || 'employee');
@@ -65,6 +67,7 @@ export function EmployeeModal({
     onSave({
       fullName: fullName.trim(),
       employeeId: employeeId.trim().toUpperCase(),
+      email: email.trim() || undefined,
       departmentId,
       departmentName: selectedDept?.name || 'General',
       designationId,
@@ -134,6 +137,21 @@ export function EmployeeModal({
               className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono uppercase"
             />
             <p className="text-[10px] text-slate-400 mt-0.5">Must be unique across the organization.</p>
+          </div>
+
+          {/* Work Email (Optional) */}
+          <div>
+            <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+              Work Email <span className="text-slate-400 font-normal">(Optional for login)</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. employee@company.com"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+            />
+            <p className="text-[10px] text-slate-400 mt-0.5">If left empty, system auto-generates credentials based on Employee ID.</p>
           </div>
 
           {/* Department (Admin-managed dropdown, PRD #6.3) */}

@@ -37,11 +37,48 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'staff_app_audit_logs',
 };
 
+const CURRENT_APP_VERSION = 'v4_real_world';
+
+const EMPTY_USER: UserProfile = {
+  id: '',
+  employeeId: '',
+  fullName: 'Guest',
+  departmentId: '',
+  departmentName: '',
+  designationId: '',
+  designationTitle: '',
+  role: 'employee',
+  isActive: false,
+  createdAt: '',
+  updatedAt: '',
+};
+
 export class AppStore {
   private static isClient = typeof window !== 'undefined';
+  private static initialized = false;
+
+  private static checkVersion(): void {
+    if (!this.isClient || this.initialized) return;
+    this.initialized = true;
+    try {
+      const storedVersion = localStorage.getItem('staff_app_version');
+      if (storedVersion !== CURRENT_APP_VERSION) {
+        // Purge old mock data from previous demo sessions
+        localStorage.removeItem(STORAGE_KEYS.PROFILES);
+        localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
+        localStorage.removeItem(STORAGE_KEYS.CORRECTIONS);
+        localStorage.removeItem(STORAGE_KEYS.DAILY_REPORTS);
+        localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS);
+        localStorage.setItem('staff_app_version', CURRENT_APP_VERSION);
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   private static getItem<T>(key: string, fallback: T): T {
     if (!this.isClient) return fallback;
+    this.checkVersion();
     try {
       const data = localStorage.getItem(key);
       return data ? JSON.parse(data) : fallback;
@@ -52,6 +89,7 @@ export class AppStore {
 
   private static setItem<T>(key: string, value: T): void {
     if (!this.isClient) return;
+    this.checkVersion();
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
@@ -63,7 +101,7 @@ export class AppStore {
   static getCurrentUser(): UserProfile {
     const user = this.getItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
     if (!user || !['employee', 'hr', 'admin'].includes(user.role)) {
-      return INITIAL_PROFILES[0];
+      return EMPTY_USER;
     }
     return user;
   }
@@ -215,6 +253,10 @@ export class AppStore {
     }
 
     return records;
+  }
+
+  static saveAttendanceRecords(records: AttendanceRecord[]): void {
+    this.setItem(STORAGE_KEYS.ATTENDANCE, records);
   }
 
   static getTodayAttendanceForUser(profileId: string): AttendanceRecord | undefined {

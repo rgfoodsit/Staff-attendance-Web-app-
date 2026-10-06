@@ -65,63 +65,83 @@ export default function Home() {
     refreshState();
     setMounted(true);
 
-    // Sync live master data from Supabase
-    async function syncSupabase() {
-      try {
-        const { createClient } = await import('@/lib/supabase/client');
-        const supabase = createClient();
-        const [settingsRes, deptsRes, desigsRes] = await Promise.all([
-          supabase.from('attendance_settings').select('*').single(),
-          supabase.from('departments').select('*').eq('is_active', true),
-          supabase.from('designations').select('*').eq('is_active', true),
-        ]);
-
-        if (settingsRes.data) {
-          const s = settingsRes.data;
-          const liveSettings: AttendanceSettings = {
-            id: s.id,
-            officialCheckinTime: s.official_checkin_time,
-            lateThresholdMinutes: s.late_threshold_minutes,
-            checkoutReminderTime: s.checkout_reminder_time,
-            checkoutReminderEnabled: s.checkout_reminder_enabled,
-            notifyEmployeeOnHrAdjustment: s.notify_employee_on_hr_adjustment,
-            updatedBy: s.updated_by,
-            updatedAt: s.updated_at,
-          };
-          setSettings(liveSettings);
-        }
-
-        if (deptsRes.data && deptsRes.data.length > 0) {
-          const liveDepts: Department[] = deptsRes.data.map((d: any) => ({
-            id: d.id,
-            name: d.name,
-            code: d.code,
-            isActive: d.is_active,
-            createdAt: d.created_at,
-            updatedAt: d.updated_at,
-          }));
-          setDepartments(liveDepts);
-          AppStore.saveDepartments(liveDepts);
-        }
-
-        if (desigsRes.data && desigsRes.data.length > 0) {
-          const liveDesigs: Designation[] = desigsRes.data.map((d: any) => ({
-            id: d.id,
-            title: d.title,
-            isActive: d.is_active,
-            createdAt: d.created_at,
-            updatedAt: d.updated_at,
-          }));
-          setDesignations(liveDesigs);
-          AppStore.saveDesignations(liveDesigs);
-        }
-      } catch (err) {
-        console.warn('Supabase live sync notice:', err);
-      }
-    }
-
+    // Sync live master data, profiles, and attendance from Supabase
     syncSupabase();
   }, []);
+
+  async function syncSupabase() {
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const [settingsRes, deptsRes, desigsRes] = await Promise.all([
+        supabase.from('attendance_settings').select('*').single(),
+        supabase.from('departments').select('*').eq('is_active', true),
+        supabase.from('designations').select('*').eq('is_active', true),
+      ]);
+
+      if (settingsRes.data) {
+        const s = settingsRes.data;
+        const liveSettings: AttendanceSettings = {
+          id: s.id,
+          officialCheckinTime: s.official_checkin_time,
+          lateThresholdMinutes: s.late_threshold_minutes,
+          checkoutReminderTime: s.checkout_reminder_time,
+          checkoutReminderEnabled: s.checkout_reminder_enabled,
+          notifyEmployeeOnHrAdjustment: s.notify_employee_on_hr_adjustment,
+          updatedBy: s.updated_by,
+          updatedAt: s.updated_at,
+        };
+        setSettings(liveSettings);
+      }
+
+      if (deptsRes.data && deptsRes.data.length > 0) {
+        const liveDepts: Department[] = deptsRes.data.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          code: d.code,
+          isActive: d.is_active,
+          createdAt: d.created_at,
+          updatedAt: d.updated_at,
+        }));
+        setDepartments(liveDepts);
+        AppStore.saveDepartments(liveDepts);
+      }
+
+      if (desigsRes.data && desigsRes.data.length > 0) {
+        const liveDesigs: Designation[] = desigsRes.data.map((d: any) => ({
+          id: d.id,
+          title: d.title,
+          isActive: d.is_active,
+          createdAt: d.created_at,
+          updatedAt: d.updated_at,
+        }));
+        setDesignations(liveDesigs);
+        AppStore.saveDesignations(liveDesigs);
+      }
+
+      // Sync Real Employees
+      const empRes = await fetch('/api/employees/list');
+      if (empRes.ok) {
+        const empData = await empRes.json();
+        if (empData.profiles) {
+          setProfiles(empData.profiles);
+          AppStore.saveProfiles(empData.profiles);
+        }
+      }
+
+      // Sync Real Attendance Records
+      const attRes = await fetch('/api/attendance/records');
+      if (attRes.ok) {
+        const attData = await attRes.json();
+        if (attData.records) {
+          setAttendanceRecords(attData.records);
+          AppStore.saveAttendanceRecords(attData.records);
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase live sync notice:', err);
+    }
+  }
 
   // Automatic day rollover watcher (refreshes check-in/check-out options when day changes)
   useEffect(() => {
@@ -131,6 +151,7 @@ export default function Home() {
         console.log(`[DayRollover] New day detected: ${currentDateStr} -> ${today}. Refreshing attendance.`);
         setCurrentDateStr(today);
         refreshState();
+        syncSupabase();
       }
     };
 
@@ -172,11 +193,41 @@ export default function Home() {
         console.warn('Storage upload fallback:', err);
       }
 
+      // 1. Persist to real Supabase attendance_records table
+      const res = await fetch('/api/attendance/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileId: currentUser.id,
+          selfieUrl: finalSelfieUrl,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          locationName: data.locationName,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || 'Check-in failed');
+      }
+
+      // 2. Update local AppStore for reactive immediate feedback
       AppStore.markCheckIn({
         user: currentUser,
         ...data,
         selfieUrl: finalSelfieUrl,
       });
+
+      // 3. Refresh live database records
+      const attRes = await fetch('/api/attendance/records');
+      if (attRes.ok) {
+        const attData = await attRes.json();
+        if (attData.records) {
+          setAttendanceRecords(attData.records);
+          AppStore.saveAttendanceRecords(attData.records);
+        }
+      }
+
       refreshState();
     } catch (err: any) {
       alert(err.message || 'Error marking check-in');
@@ -194,25 +245,84 @@ export default function Home() {
         console.warn('Storage upload fallback:', err);
       }
 
+      // 1. Persist to real Supabase attendance_records table
+      const res = await fetch('/api/attendance/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileId: currentUser.id,
+          selfieUrl: finalSelfieUrl,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          locationName: data.locationName,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || 'Check-out failed');
+      }
+
+      // 2. Update local AppStore
       AppStore.markCheckOut({
         user: currentUser,
         ...data,
         selfieUrl: finalSelfieUrl,
       });
+
+      // 3. Refresh live database records
+      const attRes = await fetch('/api/attendance/records');
+      if (attRes.ok) {
+        const attData = await attRes.json();
+        if (attData.records) {
+          setAttendanceRecords(attData.records);
+          AppStore.saveAttendanceRecords(attData.records);
+        }
+      }
+
       refreshState();
     } catch (err: any) {
       alert(err.message || 'Error marking check-out');
     }
   };
 
-  const handleMarkLeave = (data: { isHalfDay: boolean; halfType?: 'first_half' | 'second_half'; reason: string; comment?: string }) => {
+  const handleMarkLeave = async (data: { isHalfDay: boolean; halfType?: 'first_half' | 'second_half'; reason: string; comment?: string }) => {
     try {
+      // 1. Persist to Supabase
+      const res = await fetch('/api/attendance/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileId: currentUser.id,
+          leaveType: data.halfType,
+          reason: data.reason,
+          comment: data.comment,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to mark leave');
+      }
+
+      // 2. Update local AppStore
       AppStore.markLeave({
         user: currentUser,
         leaveType: data.halfType,
         reason: data.reason,
         comment: data.comment || '',
       });
+
+      // 3. Refresh records
+      const attRes = await fetch('/api/attendance/records');
+      if (attRes.ok) {
+        const attData = await attRes.json();
+        if (attData.records) {
+          setAttendanceRecords(attData.records);
+          AppStore.saveAttendanceRecords(attData.records);
+        }
+      }
+
       refreshState();
     } catch (err: any) {
       alert(err.message || 'Error marking leave');
@@ -293,6 +403,7 @@ export default function Home() {
           setIsMobilePreview(user.role === 'employee');
           setDesktopActiveTab('dashboard');
           refreshState();
+          syncSupabase();
         }}
       />
     );

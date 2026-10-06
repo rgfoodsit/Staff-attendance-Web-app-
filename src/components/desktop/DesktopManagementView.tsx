@@ -259,9 +259,10 @@ export function DesktopManagementView({
     setNewDesigTitle('');
   };
 
-  const handleSaveEmployee = (userData: {
+  const handleSaveEmployee = async (userData: {
     fullName: string;
     employeeId: string;
+    email?: string;
     departmentId: string;
     departmentName: string;
     designationId: string;
@@ -287,26 +288,40 @@ export function DesktopManagementView({
         }
         return p;
       });
+      onSaveProfiles(updatedProfiles);
+      setShowEmployeeModal(false);
+      setEditingEmployee(null);
     } else {
-      const newProfile: UserProfile = {
-        id: `user-${Date.now()}`,
-        fullName: userData.fullName,
-        employeeId: userData.employeeId,
-        departmentId: userData.departmentId,
-        departmentName: userData.departmentName,
-        designationId: userData.designationId,
-        designationTitle: userData.designationTitle,
-        role: userData.role,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      updatedProfiles = [...profiles, newProfile];
-    }
+      try {
+        const res = await fetch('/api/employees/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: userData.fullName,
+            employeeId: userData.employeeId,
+            email: userData.email,
+            password: userData.password,
+            role: userData.role,
+            departmentId: userData.departmentId,
+            designationId: userData.designationId,
+          }),
+        });
 
-    onSaveProfiles(updatedProfiles);
-    setShowEmployeeModal(false);
-    setEditingEmployee(null);
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Failed to create employee in database.');
+          return;
+        }
+
+        const newProfile: UserProfile = data.profile;
+        updatedProfiles = [newProfile, ...profiles];
+        onSaveProfiles(updatedProfiles);
+        setShowEmployeeModal(false);
+        setEditingEmployee(null);
+      } catch (err: any) {
+        alert(err.message || 'Error creating employee account.');
+      }
+    }
   };
 
   const handleToggleEmployeeActive = (profileId: string) => {
