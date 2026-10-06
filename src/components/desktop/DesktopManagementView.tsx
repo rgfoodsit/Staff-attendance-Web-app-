@@ -460,6 +460,7 @@ export function DesktopManagementView({
               <option value="leave">Full-Day Leave</option>
               <option value="absent">Absent</option>
               <option value="checkout_pending">Check-out Pending</option>
+              <option value="forgotten_checkout">Forgot to check-out</option>
             </select>
 
             {/* Date Range */}
@@ -532,7 +533,9 @@ export function DesktopManagementView({
                         <td className="px-4 py-3">{formatDuration(r.workingDurationMinutes)}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            r.isLate
+                            r.status === 'forgotten_checkout' || r.status === 'checkout_pending'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                              : r.isLate
                               ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
                               : r.status === 'absent'
                               ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
@@ -540,7 +543,7 @@ export function DesktopManagementView({
                               ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300'
                               : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                           }`}>
-                            {r.status.replace(/_/g, ' ')}
+                            {r.status === 'forgotten_checkout' ? 'Forgot Check-out' : r.status.replace(/_/g, ' ')}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-[11px]">

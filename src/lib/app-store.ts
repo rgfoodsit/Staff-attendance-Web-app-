@@ -154,16 +154,58 @@ export class AppStore {
     let hasChanges = false;
 
     // Auto-rollover previous days: if an employee checked in on a previous day and never checked out,
-    // transition status from active 'checked_in' to 'checkout_pending' so past days don't interfere with today's fresh session.
+    // transition status from active 'checked_in' / 'late' to 'forgotten_checkout' so past days don't interfere with today's fresh session.
     const updated = records.map((r) => {
-      if (r.attendanceDate < today && r.checkinTime && !r.checkoutTime && (r.status === 'checked_in' || r.status === 'late')) {
+      // 1. Sanitize the legacy mock att-1 record if it got saved with today's date
+      if (r.id === 'att-1' && r.checkinTime && r.checkinTime.includes('09:08:24') && r.attendanceDate === today) {
         hasChanges = true;
+        const past = new Date();
+        past.setDate(past.getDate() - 1);
+        const yStr = `${past.getFullYear()}-${String(past.getMonth() + 1).padStart(2, '0')}-${String(past.getDate()).padStart(2, '0')}`;
         return {
           ...r,
-          status: 'checkout_pending' as const,
-          updatedAt: r.updatedAt || new Date().toISOString(),
+          attendanceDate: yStr,
+          status: 'checked_out' as const,
+          checkoutTime: `${yStr}T18:05:00.000Z`,
+          effectiveCheckoutTime: `${yStr}T18:05:00.000Z`,
+          workingDurationMinutes: 540,
         };
       }
+
+      const checkinDateStr = r.checkinTime ? getLocalDateString(new Date(r.effectiveCheckinTime || r.checkinTime)) : r.attendanceDate;
+      const isPastDay = r.attendanceDate < today || checkinDateStr < today;
+
+      // 2. Unclosed past-day check-in: auto close as "forgotten_checkout"
+      if (isPastDay && r.checkinTime && !r.checkoutTime) {
+        if (r.status !== 'forgotten_checkout') {
+          hasChanges = true;
+          return {
+            ...r,
+            attendanceDate: checkinDateStr,
+            status: 'forgotten_checkout' as const,
+            updatedAt: r.updatedAt || new Date().toISOString(),
+          };
+        }
+      }
+
+      // 3. Clean up invalid checkout earlier than checkin (from next-day checkout bug)
+      if (r.checkinTime && r.checkoutTime) {
+        const cIn = new Date(r.effectiveCheckinTime || r.checkinTime).getTime();
+        const cOut = new Date(r.effectiveCheckoutTime || r.checkoutTime).getTime();
+        if (cOut < cIn) {
+          hasChanges = true;
+          return {
+            ...r,
+            attendanceDate: checkinDateStr,
+            checkoutTime: undefined,
+            effectiveCheckoutTime: undefined,
+            status: 'forgotten_checkout' as const,
+            workingDurationMinutes: 0,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+      }
+
       return r;
     });
 
@@ -262,12 +304,22 @@ export class AppStore {
     if (!existing || !existing.checkinTime) {
       throw new Error('You must check in before checking out.');
     }
+
+    // Safety: ensure this check-in belongs to today
+    const checkinDateStr = getLocalDateString(new Date(existing.effectiveCheckinTime || existing.checkinTime));
+    if (checkinDateStr < today || existing.attendanceDate < today) {
+      throw new Error('This check-in is from a previous day and has already ended as "Forgot to check-out". Please check in for today.');
+    }
+
     if (existing.checkoutTime) {
       throw new Error('Check-out has already been completed for today.');
     }
 
     const now = new Date();
     const checkinDate = new Date(existing.effectiveCheckinTime || existing.checkinTime);
+    if (now.getTime() < checkinDate.getTime()) {
+      throw new Error('Check-out time cannot be earlier than check-in time.');
+    }
     const durationMinutes = Math.max(0, Math.round((now.getTime() - checkinDate.getTime()) / (1000 * 60)));
 
     const updatedRecord: AttendanceRecord = {

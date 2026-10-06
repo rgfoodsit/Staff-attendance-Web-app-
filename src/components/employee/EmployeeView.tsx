@@ -20,7 +20,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { UserProfile, AttendanceRecord, AttendanceSettings, DailyWorkReport } from '@/types';
-import { formatTime, formatDate, formatDuration } from '@/lib/utils';
+import { formatTime, formatDate, formatDuration, getLocalDateString } from '@/lib/utils';
 import { LiveAttendanceModal } from './LiveAttendanceModal';
 import { LeaveModal } from './LeaveModal';
 import { CorrectionModal } from './CorrectionModal';
@@ -61,8 +61,8 @@ export function EmployeeView({
   const [reportSaved, setReportSaved] = useState(false);
   const [activeTab, setActiveTab] = useState<'home' | 'history' | 'profile'>('home');
 
-  const hasCheckedIn = !!todayRecord?.checkinTime;
-  const hasCheckedOut = !!todayRecord?.checkoutTime;
+  const hasCheckedIn = !!todayRecord?.checkinTime && todayRecord?.status !== 'forgotten_checkout';
+  const hasCheckedOut = !!todayRecord?.checkoutTime && todayRecord?.status !== 'forgotten_checkout';
   const isOnLeave = todayRecord?.status === 'leave';
   const isHalfDayLeave = todayRecord?.status === 'half_day_leave';
 
@@ -74,7 +74,7 @@ export function EmployeeView({
   };
 
   const getStatusBadge = () => {
-    if (!todayRecord) {
+    if (!todayRecord || todayRecord.status === 'forgotten_checkout') {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
           Not Checked In
@@ -338,9 +338,16 @@ export function EmployeeView({
                     <span className="font-semibold text-xs text-slate-900 dark:text-white">
                       {formatDate(r.attendanceDate)}
                     </span>
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                      {r.status.replace(/_/g, ' ')}
-                    </span>
+                    {r.status === 'forgotten_checkout' || (!r.checkoutTime && r.attendanceDate < getLocalDateString()) ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800">
+                        <AlertTriangle className="w-3 h-3 text-amber-500" />
+                        Forgot to check-out
+                      </span>
+                    ) : (
+                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        {r.status.replace(/_/g, ' ')}
+                      </span>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
@@ -353,13 +360,19 @@ export function EmployeeView({
                     <div>
                       <span className="text-[10px] text-slate-400 block">Check-out</span>
                       <span className="font-medium text-slate-800 dark:text-slate-200">
-                        {formatTime(r.effectiveCheckoutTime || r.checkoutTime)}
+                        {r.status === 'forgotten_checkout' || (!r.checkoutTime && r.attendanceDate < getLocalDateString()) ? (
+                          <span className="text-amber-500 font-semibold text-[10px]">Missed</span>
+                        ) : (
+                          formatTime(r.effectiveCheckoutTime || r.checkoutTime)
+                        )}
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 block">Duration</span>
                       <span className="font-medium text-slate-800 dark:text-slate-200">
-                        {formatDuration(r.workingDurationMinutes)}
+                        {r.status === 'forgotten_checkout' || (!r.checkoutTime && r.attendanceDate < getLocalDateString())
+                          ? '--'
+                          : formatDuration(r.workingDurationMinutes)}
                       </span>
                     </div>
                   </div>

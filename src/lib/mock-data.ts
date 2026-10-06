@@ -91,7 +91,17 @@ export const INITIAL_SETTINGS: AttendanceSettings = {
   updatedAt: '2026-10-01T09:00:00Z',
 };
 
-const TODAY = new Date().toISOString().split('T')[0];
+const getPastDateStr = (daysAgo: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const YESTERDAY = getPastDateStr(1);
+const TWO_DAYS_AGO = getPastDateStr(2);
 
 export const INITIAL_ATTENDANCE: AttendanceRecord[] = [
   {
@@ -101,18 +111,25 @@ export const INITIAL_ATTENDANCE: AttendanceRecord[] = [
     employeeId: 'EMP-1001',
     departmentName: 'Engineering',
     designationTitle: 'Senior Software Engineer',
-    attendanceDate: TODAY,
-    status: 'checked_in',
+    attendanceDate: YESTERDAY,
+    status: 'checked_out',
     isLate: false,
     isHrAdjusted: false,
-    checkinTime: `${TODAY}T09:08:24.000Z`,
-    effectiveCheckinTime: `${TODAY}T09:08:24.000Z`,
+    checkinTime: `${YESTERDAY}T09:05:00.000Z`,
+    effectiveCheckinTime: `${YESTERDAY}T09:05:00.000Z`,
+    checkoutTime: `${YESTERDAY}T18:05:00.000Z`,
+    effectiveCheckoutTime: `${YESTERDAY}T18:05:00.000Z`,
+    workingDurationMinutes: 540,
     checkinSelfieUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=80',
+    checkoutSelfieUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=80',
     checkinLatitude: 37.7749,
     checkinLongitude: -122.4194,
     checkinLocationName: '500 Howard St, Financial District, San Francisco, CA',
-    createdAt: `${TODAY}T09:08:24.000Z`,
-    updatedAt: `${TODAY}T09:08:24.000Z`,
+    checkoutLatitude: 37.7749,
+    checkoutLongitude: -122.4194,
+    checkoutLocationName: '500 Howard St, Financial District, San Francisco, CA',
+    createdAt: `${YESTERDAY}T09:05:00.000Z`,
+    updatedAt: `${YESTERDAY}T18:05:00.000Z`,
   },
   {
     id: 'att-2',
@@ -121,18 +138,18 @@ export const INITIAL_ATTENDANCE: AttendanceRecord[] = [
     employeeId: 'EMP-1002',
     departmentName: 'Operations',
     designationTitle: 'Operations Lead',
-    attendanceDate: TODAY,
-    status: 'late',
+    attendanceDate: TWO_DAYS_AGO,
+    status: 'forgotten_checkout',
     isLate: true,
     isHrAdjusted: false,
-    checkinTime: `${TODAY}T09:32:15.000Z`,
-    effectiveCheckinTime: `${TODAY}T09:32:15.000Z`,
+    checkinTime: `${TWO_DAYS_AGO}T09:32:15.000Z`,
+    effectiveCheckinTime: `${TWO_DAYS_AGO}T09:32:15.000Z`,
     checkinSelfieUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&q=80',
     checkinLatitude: 37.7833,
     checkinLongitude: -122.4167,
     checkinLocationName: '1355 Market St, SoMa, San Francisco, CA',
-    createdAt: `${TODAY}T09:32:15.000Z`,
-    updatedAt: `${TODAY}T09:32:15.000Z`,
+    createdAt: `${TWO_DAYS_AGO}T09:32:15.000Z`,
+    updatedAt: `${TWO_DAYS_AGO}T09:32:15.000Z`,
   },
 ];
 
@@ -144,11 +161,11 @@ export const INITIAL_CORRECTIONS: AttendanceCorrection[] = [
     employeeName: 'Sarah Chen',
     employeeId: 'EMP-1002',
     correctionType: 'checkin_time',
-    originalCheckinTime: `${TODAY}T09:32:15.000Z`,
-    requestedCheckinTime: `${TODAY}T09:12:00.000Z`,
+    originalCheckinTime: `${TWO_DAYS_AGO}T09:32:15.000Z`,
+    requestedCheckinTime: `${TWO_DAYS_AGO}T09:12:00.000Z`,
     reason: 'Camera permission prompt stalled during building entrance elevator ride.',
     status: 'pending',
-    createdAt: `${TODAY}T10:00:00.000Z`,
+    createdAt: `${TWO_DAYS_AGO}T10:00:00.000Z`,
   },
 ];
 
@@ -158,10 +175,10 @@ export const INITIAL_DAILY_REPORTS: DailyWorkReport[] = [
     profileId: 'user-emp-1',
     employeeName: 'Alex Morgan',
     employeeId: 'EMP-1001',
-    reportDate: TODAY,
+    reportDate: YESTERDAY,
     reportText: 'Completed client code review on the authentication module. Investigated GPS coordinate edge case in tunnel areas. Documented Next.js server actions spec.',
-    createdAt: `${TODAY}T11:30:00.000Z`,
-    updatedAt: `${TODAY}T11:30:00.000Z`,
+    createdAt: `${YESTERDAY}T11:30:00.000Z`,
+    updatedAt: `${YESTERDAY}T11:30:00.000Z`,
     isReadOnly: false,
   }
 ];

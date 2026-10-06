@@ -9,7 +9,8 @@ export type AttendanceStatus =
   | 'absent'
   | 'checked_in'
   | 'checked_out'
-  | 'checkout_pending';
+  | 'checkout_pending'
+  | 'forgotten_checkout';
 
 export type LeaveHalfType = 'first_half' | 'second_half';
 

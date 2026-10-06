@@ -184,8 +184,8 @@ export function EvidenceModal({ isOpen, onClose, record }: EvidenceModalProps) {
               ) : (
                 <div className="py-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-1">
                   <span>No check-out selfie captured yet</span>
-                  {record.status === 'checkout_pending' && (
-                    <span className="text-amber-500 font-medium text-[11px]">Check-out Pending</span>
+                  {(record.status === 'checkout_pending' || record.status === 'forgotten_checkout') && (
+                    <span className="text-amber-500 font-medium text-[11px]">Forgot to check-out (Missed)</span>
                   )}
                 </div>
               )}
