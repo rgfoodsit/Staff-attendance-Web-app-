@@ -16,7 +16,8 @@ import {
   Save, 
   ShieldCheck,
   AlertTriangle,
-  FileEdit
+  FileEdit,
+  RefreshCw
 } from 'lucide-react';
 import { UserProfile, AttendanceRecord, AttendanceSettings, DailyWorkReport } from '@/types';
 import { formatTime, formatDate, formatDuration } from '@/lib/utils';
@@ -35,6 +36,7 @@ interface EmployeeViewProps {
   onMarkLeave: (data: { isHalfDay: boolean; halfType?: 'first_half' | 'second_half'; reason: string; comment?: string }) => void;
   onSaveWorkReport: (text: string) => void;
   onSubmitCorrection: (data: any) => void;
+  onRefresh?: () => void;
   onLogout: () => void;
 }
 
@@ -49,6 +51,7 @@ export function EmployeeView({
   onMarkLeave,
   onSaveWorkReport,
   onSubmitCorrection,
+  onRefresh,
   onLogout,
 }: EmployeeViewProps) {
   const [modalType, setModalType] = useState<'checkin' | 'checkout' | null>(null);
@@ -186,9 +189,22 @@ export function EmployeeView({
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Today's Status
                 </span>
-                <span className="text-xs text-slate-400">
-                  {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400">
+                    {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
+                  {onRefresh && (
+                    <button
+                      type="button"
+                      onClick={onRefresh}
+                      className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                      title="Refresh for Today"
+                      aria-label="Refresh for Today"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center justify-between pt-1">

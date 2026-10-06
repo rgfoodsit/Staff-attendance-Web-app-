@@ -149,12 +149,51 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               </button>
             </form>
 
-            <p className="text-xs text-slate-500 text-center pt-1">
-              Don&apos;t have an account?{' '}
-              <span className="text-red-500 font-semibold hover:underline cursor-pointer">
-                Contact HR
-              </span>
-            </p>
+              {/* Quick Demo Fill Buttons */}
+              <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                <span className="text-[11px] font-semibold text-slate-400 block uppercase tracking-wider">
+                  Demo Accounts (Click to Fill)
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmployeeId('EMP-1001');
+                      setPassword('123');
+                    }}
+                    className="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition cursor-pointer"
+                  >
+                    Employee (EMP-1001)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmployeeId('HR-3001');
+                      setPassword('123');
+                    }}
+                    className="px-2.5 py-1 text-xs rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium transition cursor-pointer"
+                  >
+                    HR (HR-3001)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmployeeId('ADM-0001');
+                      setPassword('123');
+                    }}
+                    className="px-2.5 py-1 text-xs rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-medium transition cursor-pointer"
+                  >
+                    Admin (ADM-0001)
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-500 text-center pt-1">
+                Don&apos;t have an account?{' '}
+                <span className="text-red-500 font-semibold hover:underline cursor-pointer">
+                  Contact HR
+                </span>
+              </p>
           </div>
         </div>
       </div>

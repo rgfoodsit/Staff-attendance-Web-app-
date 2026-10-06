@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, MapPin, CheckCircle, AlertTriangle, RefreshCw, X, ShieldCheck } from 'lucide-react';
+import { Camera, MapPin, CheckCircle, AlertTriangle, RefreshCw, X, ShieldCheck, ExternalLink } from 'lucide-react';
 
 interface LiveAttendanceModalProps {
   isOpen: boolean;
@@ -27,12 +27,13 @@ export function LiveAttendanceModal({
   const [isLocating, setIsLocating] = useState(false);
 
   const [selfieDataUrl, setSelfieDataUrl] = useState<string | null>(null);
-  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [locationName, setLocationName] = useState<string>('Detecting location...');
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
+  const [locationName, setLocationName] = useState<string>('Detecting GPS location...');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   // Initialize camera and geolocation when modal opens
   useEffect(() => {
@@ -44,9 +45,11 @@ export function LiveAttendanceModal({
       fetchLocation();
     } else {
       stopCamera();
+      stopLocationTracking();
     }
     return () => {
       stopCamera();
+      stopLocationTracking();
     };
   }, [isOpen]);
 
@@ -84,8 +87,17 @@ export function LiveAttendanceModal({
     }
   };
 
-  const setCoordinatesAndReverseGeocode = async (latitude: number, longitude: number, labelPrefix = '') => {
-    setCoords({ latitude, longitude });
+  const stopLocationTracking = () => {
+    if (watchIdRef.current !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+  };
+
+  const setCoordinatesAndReverseGeocode = async (latitude: number, longitude: number, accuracy?: number) => {
+    setCoords({ latitude, longitude, accuracy });
+    setIsLocating(false);
+
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     // 1. Try Google Maps Geocoding API if key is available
@@ -96,19 +108,36 @@ export function LiveAttendanceModal({
         );
         const googleData = await googleRes.json();
         if (googleData.status === 'OK' && googleData.results && googleData.results[0]) {
-          const detectedName = googleData.results[0].formatted_address;
-          setLocationName(labelPrefix ? `${labelPrefix} - ${detectedName}` : detectedName);
-          setIsLocating(false);
+          setLocationName(googleData.results[0].formatted_address);
           return;
-        } else {
-          console.warn('Google Maps Geocoding API status:', googleData.status, googleData.error_message);
         }
       } catch (googleErr) {
         console.warn('Google Maps Geocoding fetch notice:', googleErr);
       }
     }
 
-    // 2. Fallback to OpenStreetMap Reverse Geocoding
+    // 2. Try BigDataCloud Client Reverse Geocode (free, client-side, CORS friendly)
+    try {
+      const bdcRes = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+      );
+      if (bdcRes.ok) {
+        const bdcData = await bdcRes.json();
+        const parts = [
+          bdcData.locality || bdcData.city,
+          bdcData.principalSubdivision,
+          bdcData.countryName,
+        ].filter(Boolean);
+        if (parts.length > 0) {
+          setLocationName(parts.join(', '));
+          return;
+        }
+      }
+    } catch (bdcErr) {
+      console.warn('BigDataCloud reverse geocode notice:', bdcErr);
+    }
+
+    // 3. Fallback to OpenStreetMap Reverse Geocoding
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -116,73 +145,86 @@ export function LiveAttendanceModal({
       );
       if (res.ok) {
         const data = await res.json();
-        const detectedName = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-        setLocationName(labelPrefix ? `${labelPrefix} - ${detectedName}` : detectedName);
-      } else {
-        setLocationName(`${labelPrefix || 'Office Location'} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
+        if (data.display_name) {
+          setLocationName(data.display_name);
+          return;
+        }
       }
     } catch {
-      setLocationName(`${labelPrefix || 'Marked Location'} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
-    } finally {
-      setIsLocating(false);
+      // ignore
     }
-  };
 
-  const applyFallbackCoordinates = () => {
-    setErrorMsg(null);
-    setIsLocating(true);
-    // Standard Office Headquarters coordinates (San Francisco Financial District)
-    const fallbackLat = 37.7749;
-    const fallbackLon = -122.4194;
-    setCoordinatesAndReverseGeocode(fallbackLat, fallbackLon, 'Office HQ (Simulated GPS)');
+    // 4. Default clean fallback showing exact coordinates
+    setLocationName(`GPS Location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`);
   };
 
   const fetchLocation = () => {
-    if (!navigator.geolocation) {
+    stopLocationTracking();
+
+    if (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      setErrorMsg('Geolocation requires a secure connection (HTTPS) or localhost. Please ensure you are opening the site via HTTPS.');
+      setIsLocating(false);
+      return;
+    }
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setErrorMsg('Geolocation is not supported by your browser.');
-      applyFallbackCoordinates();
+      setIsLocating(false);
       return;
     }
 
     setIsLocating(true);
     setErrorMsg(null);
 
+    let hasReceivedPosition = false;
+
     const handleSuccess = (pos: GeolocationPosition) => {
-      const { latitude, longitude } = pos.coords;
-      setCoordinatesAndReverseGeocode(latitude, longitude);
+      hasReceivedPosition = true;
+      setErrorMsg(null);
+      const { latitude, longitude, accuracy } = pos.coords;
+      setCoordinatesAndReverseGeocode(latitude, longitude, accuracy);
     };
 
-    const handleError = (err: GeolocationPositionError) => {
-      console.warn('Geolocation error code:', err.code, 'message:', err.message);
-
-      // Attempt low accuracy fallback if high accuracy timed out or failed
-      navigator.geolocation.getCurrentPosition(
-        handleSuccess,
-        (fallbackErr) => {
-          console.warn('Fallback geolocation error:', fallbackErr.code, fallbackErr.message);
-          setIsLocating(false);
-
-          let errorText = 'Location access is required for attendance evidence.';
-          if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
-            errorText = 'Location permission was denied. Please allow location access in your browser address bar.';
-          } else if (fallbackErr.code === fallbackErr.POSITION_UNAVAILABLE) {
-            errorText = 'GPS position is unavailable on this device/network.';
-          } else if (fallbackErr.code === fallbackErr.TIMEOUT) {
-            errorText = 'GPS request timed out. Please retry or use office coordinates.';
-          }
-
-          setErrorMsg(errorText);
-        },
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
-      );
+    const handleInitialError = (err: GeolocationPositionError) => {
+      if (hasReceivedPosition) return;
+      console.warn('Geolocation fast fix notice:', err.code, err.message);
     };
 
-    // First attempt with high accuracy
+    const handleWatchError = (err: GeolocationPositionError) => {
+      if (hasReceivedPosition) return;
+      console.warn('Geolocation watch error:', err.code, err.message);
+      setIsLocating(false);
+
+      let errorText = 'Unable to acquire GPS location.';
+      if (err.code === err.PERMISSION_DENIED) {
+        errorText = 'Location permission was denied. Tap the lock/tune icon in your browser address bar to allow location access, then tap "Retry GPS Access".';
+      } else if (err.code === err.POSITION_UNAVAILABLE) {
+        errorText = 'GPS signal is unavailable. Please ensure Location/GPS is turned ON in your phone settings and try again.';
+      } else if (err.code === err.TIMEOUT) {
+        errorText = 'GPS signal acquisition timed out. Please ensure your device Location/GPS is enabled and tap "Retry GPS Access".';
+      }
+
+      setErrorMsg(errorText);
+    };
+
+    // Stage 1: Immediate Fast Coarse / Cached Fix (low latency, allows immediate check-in on phones)
     navigator.geolocation.getCurrentPosition(
       handleSuccess,
-      handleError,
-      { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+      handleInitialError,
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
     );
+
+    // Stage 2: High Accuracy Continuous Watch (refines satellite fix in background)
+    try {
+      const watchId = navigator.geolocation.watchPosition(
+        handleSuccess,
+        handleWatchError,
+        { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
+      );
+      watchIdRef.current = watchId;
+    } catch (watchErr) {
+      console.warn('Failed to start watchPosition:', watchErr);
+    }
   };
 
   const takeSnapshot = () => {
@@ -207,6 +249,7 @@ export function LiveAttendanceModal({
 
       setSelfieDataUrl(dataUrl);
       stopCamera();
+      stopLocationTracking();
       setStep('review');
     }
     setIsCapturing(false);
@@ -216,6 +259,7 @@ export function LiveAttendanceModal({
     setSelfieDataUrl(null);
     setStep('capture');
     startCamera();
+    fetchLocation();
   };
 
   const handleFinalConfirm = () => {
@@ -261,25 +305,18 @@ export function LiveAttendanceModal({
             <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div className="space-y-1.5 flex-1">
-                <p className="font-semibold">Location / GPS Notice</p>
+                <p className="font-semibold">GPS Location Notice</p>
                 <p className="text-[11px] opacity-90 leading-relaxed">{errorMsg}</p>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => {
-                      startCamera();
                       fetchLocation();
                     }}
-                    className="px-2.5 py-1 text-xs font-semibold bg-amber-200/60 dark:bg-amber-900/60 hover:bg-amber-200 rounded-lg transition"
+                    className="px-3 py-1.5 text-xs font-semibold bg-amber-200 dark:bg-amber-900/80 hover:bg-amber-300 dark:hover:bg-amber-800 text-amber-900 dark:text-amber-100 rounded-lg transition flex items-center gap-1.5 shadow-xs"
                   >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
                     Retry GPS Access
-                  </button>
-                  <button
-                    type="button"
-                    onClick={applyFallbackCoordinates}
-                    className="px-2.5 py-1 text-xs font-semibold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200/80 rounded-lg transition"
-                  >
-                    Use Office Coordinates (Demo / Desktop)
                   </button>
                 </div>
               </div>
@@ -312,13 +349,43 @@ export function LiveAttendanceModal({
 
               {/* Location Status Pill */}
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-                <MapPin className={`w-4 h-4 flex-shrink-0 ${coords ? 'text-emerald-500' : 'text-amber-500 animate-pulse'}`} />
+                <MapPin
+                  className={`w-4 h-4 flex-shrink-0 ${
+                    coords
+                      ? 'text-emerald-500'
+                      : isLocating
+                      ? 'text-amber-500 animate-pulse'
+                      : 'text-slate-400'
+                  }`}
+                />
                 <div className="flex-1 truncate">
-                  <span className="font-medium text-slate-800 dark:text-slate-200">
-                    {coords ? 'GPS Locked' : 'Locating GPS...'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {coords
+                        ? coords.accuracy && coords.accuracy <= 30
+                          ? 'GPS Locked (High Precision)'
+                          : 'GPS Locked'
+                        : isLocating
+                        ? 'Acquiring GPS...'
+                        : 'GPS Waiting'}
+                    </span>
+                    {coords?.accuracy && (
+                      <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded font-mono">
+                        &plusmn;{Math.round(coords.accuracy)}m
+                      </span>
+                    )}
+                  </div>
                   <p className="truncate text-[11px] text-slate-500">{locationName}</p>
                 </div>
+                <button
+                  type="button"
+                  title="Refresh GPS"
+                  onClick={fetchLocation}
+                  disabled={isLocating}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+                </button>
               </div>
 
               {/* Capture Button */}
@@ -362,15 +429,26 @@ export function LiveAttendanceModal({
                   </span>
                 </div>
                 <div className="flex items-start justify-between gap-3">
-                  <span className="text-slate-500 flex-shrink-0">Readable Location:</span>
+                  <span className="text-slate-500 flex-shrink-0">Detected Location:</span>
                   <span className="font-medium text-slate-800 dark:text-slate-100 text-right text-[11px] leading-relaxed">
                     {locationName}
                   </span>
                 </div>
                 {coords && (
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
                     <span>GPS Coordinates:</span>
-                    <span>{coords.latitude.toFixed(6)}, {coords.longitude.toFixed(6)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">{coords.latitude.toFixed(6)}, {coords.longitude.toFixed(6)}</span>
+                      <a
+                        href={`https://www.google.com/maps?q=${coords.latitude},${coords.longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-0.5 text-[10px]"
+                      >
+                        <span>Map</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>

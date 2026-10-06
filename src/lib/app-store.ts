@@ -22,6 +22,7 @@ import {
   INITIAL_DAILY_REPORTS,
   INITIAL_AUDIT_LOGS,
 } from './mock-data';
+import { getLocalDateString } from './utils';
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'staff_app_current_user',
@@ -148,11 +149,34 @@ export class AppStore {
 
   // Attendance Records
   static getAttendanceRecords(): AttendanceRecord[] {
-    return this.getItem<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
+    const records = this.getItem<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
+    const today = getLocalDateString();
+    let hasChanges = false;
+
+    // Auto-rollover previous days: if an employee checked in on a previous day and never checked out,
+    // transition status from active 'checked_in' to 'checkout_pending' so past days don't interfere with today's fresh session.
+    const updated = records.map((r) => {
+      if (r.attendanceDate < today && r.checkinTime && !r.checkoutTime && (r.status === 'checked_in' || r.status === 'late')) {
+        hasChanges = true;
+        return {
+          ...r,
+          status: 'checkout_pending' as const,
+          updatedAt: r.updatedAt || new Date().toISOString(),
+        };
+      }
+      return r;
+    });
+
+    if (hasChanges) {
+      this.setItem(STORAGE_KEYS.ATTENDANCE, updated);
+      return updated;
+    }
+
+    return records;
   }
 
   static getTodayAttendanceForUser(profileId: string): AttendanceRecord | undefined {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const records = this.getAttendanceRecords();
     return records.find((r) => r.profileId === profileId && r.attendanceDate === today);
   }
@@ -164,7 +188,7 @@ export class AppStore {
     longitude: number;
     locationName: string;
   }): AttendanceRecord {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const existing = this.getTodayAttendanceForUser(params.user.id);
 
     if (existing && existing.checkinTime) {
@@ -232,7 +256,7 @@ export class AppStore {
     longitude: number;
     locationName: string;
   }): AttendanceRecord {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const existing = this.getTodayAttendanceForUser(params.user.id);
 
     if (!existing || !existing.checkinTime) {
@@ -282,7 +306,7 @@ export class AppStore {
     reason: string;
     comment?: string;
   }): AttendanceRecord {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const existing = this.getTodayAttendanceForUser(params.user.id);
 
     if (existing && existing.status === 'leave') {
@@ -398,13 +422,13 @@ export class AppStore {
   }
 
   static getTodayWorkReport(profileId: string): DailyWorkReport | undefined {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const reports = this.getDailyReports();
     return reports.find((r) => r.profileId === profileId && r.reportDate === today);
   }
 
   static saveTodayWorkReport(user: UserProfile, reportText: string): DailyWorkReport {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const reports = this.getDailyReports();
     const index = reports.findIndex((r) => r.profileId === user.id && r.reportDate === today);
 

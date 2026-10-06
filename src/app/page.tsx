@@ -19,6 +19,7 @@ import { EmployeeView } from '@/components/employee/EmployeeView';
 import { DesktopManagementView } from '@/components/desktop/DesktopManagementView';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { Smartphone, Laptop, AlertCircle } from 'lucide-react';
+import { getLocalDateString } from '@/lib/utils';
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<UserProfile>(AppStore.getCurrentUser());
@@ -35,6 +36,7 @@ export default function Home() {
   const [isMobilePreview, setIsMobilePreview] = useState(false);
   const [desktopActiveTab, setDesktopActiveTab] = useState<'dashboard' | 'employees' | 'corrections' | 'reports' | 'masters' | 'audit' | 'settings' | 'profile'>('dashboard');
   const [mounted, setMounted] = useState(false);
+  const [currentDateStr, setCurrentDateStr] = useState<string>(getLocalDateString());
 
   // Load all initial state
   const refreshState = () => {
@@ -120,6 +122,36 @@ export default function Home() {
 
     syncSupabase();
   }, []);
+
+  // Automatic day rollover watcher (refreshes check-in/check-out options when day changes)
+  useEffect(() => {
+    const checkDayRollover = () => {
+      const today = getLocalDateString();
+      if (today !== currentDateStr) {
+        console.log(`[DayRollover] New day detected: ${currentDateStr} -> ${today}. Refreshing attendance.`);
+        setCurrentDateStr(today);
+        refreshState();
+      }
+    };
+
+    // Heartbeat check every 15 seconds
+    const intervalId = setInterval(checkDayRollover, 15000);
+
+    // Immediate check when returning to tab or unlocking device screen
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkDayRollover();
+      }
+    };
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', checkDayRollover);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', checkDayRollover);
+    };
+  }, [currentDateStr]);
 
   const handleRoleChange = (role: UserRole) => {
     const switchedUser = AppStore.switchRole(role);
@@ -267,11 +299,11 @@ export default function Home() {
   }
 
   const todayRecord = attendanceRecords.find(
-    (r) => r.profileId === currentUser.id && r.attendanceDate === new Date().toISOString().split('T')[0]
+    (r) => r.profileId === currentUser.id && r.attendanceDate === currentDateStr
   );
   const employeeHistory = attendanceRecords.filter((r) => r.profileId === currentUser.id);
   const todayReport = dailyReports.find(
-    (r) => r.profileId === currentUser.id && r.reportDate === new Date().toISOString().split('T')[0]
+    (r) => r.profileId === currentUser.id && r.reportDate === currentDateStr
   );
 
   const isEmployee = currentUser.role === 'employee';
@@ -293,6 +325,10 @@ export default function Home() {
               onMarkLeave={handleMarkLeave}
               onSaveWorkReport={handleSaveWorkReport}
               onSubmitCorrection={handleSubmitCorrection}
+              onRefresh={() => {
+                setCurrentDateStr(getLocalDateString());
+                refreshState();
+              }}
               onLogout={() => {
                 AppStore.logout();
                 setIsAuthenticated(false);

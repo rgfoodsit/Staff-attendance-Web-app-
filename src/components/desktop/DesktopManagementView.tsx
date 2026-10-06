@@ -41,7 +41,7 @@ import {
   AuditLogEntry,
   UserRole
 } from '@/types';
-import { formatTime, formatDate, formatDuration } from '@/lib/utils';
+import { formatTime, formatDate, formatDuration, getLocalDateString } from '@/lib/utils';
 import { exportToExcel, exportToPDF, filterAttendanceRecords } from '@/lib/export-service';
 import { EvidenceModal } from './EvidenceModal';
 import { HrAdjustmentModal } from './HrAdjustmentModal';
@@ -173,7 +173,7 @@ export function DesktopManagementView({
   const isHR = currentUser.role === 'hr';
   const isAdmin = currentUser.role === 'admin';
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
 
   // Filtered records
   const filteredRecords = useMemo(() => {
