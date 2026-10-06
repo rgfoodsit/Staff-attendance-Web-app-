@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kmlsbqtydwtgyabrvhxu.supabase.co';
+const ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_MxDhZBBE-yhKtiQyossNYw_HFmXvJJR';
 
 export async function POST(req: Request) {
   try {
-    const supabase = createAdminClient();
+    const adminSupabase = createAdminClient();
     const body = await req.json();
     const { identifier, password } = body;
 
@@ -19,7 +24,7 @@ export async function POST(req: Request) {
 
     // 1. If identifier is NOT an email (does not contain '@'), resolve email via profiles table
     if (!trimmed.includes('@')) {
-      const { data: profile, error: profileErr } = await supabase
+      const { data: profile, error: profileErr } = await adminSupabase
         .from('profiles')
         .select('id, employee_id, is_active')
         .or(`employee_id.ilike.${trimmed},full_name.ilike.${trimmed}`)
@@ -40,7 +45,7 @@ export async function POST(req: Request) {
       }
 
       // Fetch user's registered email from auth.users
-      const { data: authUser, error: authUserErr } = await supabase.auth.admin.getUserById(profile.id);
+      const { data: authUser, error: authUserErr } = await adminSupabase.auth.admin.getUserById(profile.id);
       if (authUserErr || !authUser?.user?.email) {
         return NextResponse.json(
           { error: 'Authentication credentials could not be resolved for this account.' },
@@ -51,8 +56,15 @@ export async function POST(req: Request) {
       emailToAuth = authUser.user.email;
     }
 
-    // 2. Sign in with resolved email and password
-    const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+    // 2. Authenticate credentials via dedicated auth client (isolated from service role client)
+    const authSupabase = createClient(SUPABASE_URL, ANON_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    const { data: signInData, error: signInErr } = await authSupabase.auth.signInWithPassword({
       email: emailToAuth,
       password: password,
     });
@@ -64,8 +76,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Retrieve full profile with department and designation details
-    const { data: profileData, error: profileFetchErr } = await supabase
+    // 3. Retrieve full profile with department and designation using admin client (bypasses RLS)
+    const { data: profileData, error: profileFetchErr } = await adminSupabase
       .from('profiles')
       .select('*, departments:department_id(name), designations:designation_id(title)')
       .eq('id', signInData.user.id)
@@ -95,6 +107,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       user: formattedUser,
+      profile: formattedUser,
       session: signInData.session,
     });
   } catch (err: any) {

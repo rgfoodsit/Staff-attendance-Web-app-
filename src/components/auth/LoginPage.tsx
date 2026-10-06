@@ -96,14 +96,21 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         return;
       }
 
-      if (!data.profile?.isActive) {
+      const profile = data.profile || data.user;
+      if (!profile) {
+        setError('Profile data missing in response. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!profile.isActive) {
         setError('This employee account has been deactivated. Please contact Management.');
         setIsLoading(false);
         return;
       }
 
-      AppStore.setCurrentUser(data.profile);
-      onLoginSuccess(data.profile);
+      AppStore.setCurrentUser(profile);
+      onLoginSuccess(profile);
     } catch (err: any) {
       setError(err.message || 'Network error connecting to auth service.');
     } finally {
