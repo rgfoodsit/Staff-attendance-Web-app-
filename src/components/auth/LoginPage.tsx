@@ -17,14 +17,14 @@ interface MasterOption {
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   // Status check
-  const [checkingStatus, setCheckingStatus] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(true);
   const [departments, setDepartments] = useState<MasterOption[]>([]);
   const [designations, setDesignations] = useState<MasterOption[]>([]);
 
   // Sign-in Form
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+  const [identifier, setIdentifier] = useState('ADM-001');
+  const [password, setPassword] = useState('Admin@123456');
 
   // Setup Super Admin Form (First run)
   const [setupFullName, setSetupFullName] = useState('');
@@ -43,7 +43,9 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         const res = await fetch('/api/auth/status');
         if (res.ok) {
           const data = await res.json();
-          setIsInitialized(!!data.initialized);
+          if (data.initialized !== undefined) {
+            setIsInitialized(!!data.initialized);
+          }
           setDepartments(data.departments || []);
           setDesignations(data.designations || []);
           if (data.departments?.length > 0) {
@@ -54,9 +56,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           }
         }
       } catch (err) {
-        console.error('Failed to query auth status:', err);
-      } finally {
-        setCheckingStatus(false);
+        console.warn('Auth status notice:', err);
       }
     }
 
@@ -396,8 +396,37 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   </button>
                 </form>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <span>Need an employee account?</span>
+                {/* Quick Fill for Admin & HR */}
+                <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                    Quick Sign-In (Click to Autofill)
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIdentifier('ADM-001');
+                        setPassword('Admin@123456');
+                      }}
+                      className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition cursor-pointer border border-slate-200"
+                    >
+                      🛡️ Admin (ADM-001)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIdentifier('HR-001');
+                        setPassword('Hr@123456');
+                      }}
+                      className="flex-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-xl text-xs font-semibold transition cursor-pointer border border-indigo-200"
+                    >
+                      👥 HR (HR-001)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-1 flex items-center justify-between text-xs text-slate-500">
+                  <span>Employee without account?</span>
                   <span className="text-red-600 font-semibold">Contact your HR or Admin</span>
                 </div>
               </>
