@@ -28,7 +28,8 @@ import {
   Key,
   Laptop,
   LayoutDashboard,
-  ClipboardCheck
+  ClipboardCheck,
+  Trash2
 } from 'lucide-react';
 import {
   UserProfile,
@@ -229,34 +230,77 @@ export function DesktopManagementView({
     setTimeout(() => setSettingsSaved(false), 3000);
   };
 
-  const handleAddDepartment = (e: React.FormEvent) => {
+  const handleAddDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDeptName || !newDeptCode) return;
-    const newDept: Department = {
-      id: `dept-${Date.now()}`,
-      name: newDeptName.trim(),
-      code: newDeptCode.trim().toUpperCase(),
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    onSaveDepartment([...departments, newDept]);
-    setNewDeptName('');
-    setNewDeptCode('');
+    try {
+      const res = await fetch('/api/masters/departments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newDeptName.trim(), code: newDeptCode.trim().toUpperCase() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to add department');
+        return;
+      }
+      onSaveDepartment([...departments, data.department]);
+      setNewDeptName('');
+      setNewDeptCode('');
+    } catch (err: any) {
+      alert(err.message || 'Error adding department');
+    }
   };
 
-  const handleAddDesignation = (e: React.FormEvent) => {
+  const handleDeleteDepartment = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this department?')) return;
+    try {
+      const res = await fetch(`/api/masters/departments?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to remove department');
+        return;
+      }
+      onSaveDepartment(departments.filter((d) => d.id !== id));
+    } catch (err: any) {
+      alert(err.message || 'Error removing department');
+    }
+  };
+
+  const handleAddDesignation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDesigTitle) return;
-    const newDesig: Designation = {
-      id: `desig-${Date.now()}`,
-      title: newDesigTitle.trim(),
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    onSaveDesignation([...designations, newDesig]);
-    setNewDesigTitle('');
+    try {
+      const res = await fetch('/api/masters/designations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newDesigTitle.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to add designation');
+        return;
+      }
+      onSaveDesignation([...designations, data.designation]);
+      setNewDesigTitle('');
+    } catch (err: any) {
+      alert(err.message || 'Error adding designation');
+    }
+  };
+
+  const handleDeleteDesignation = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this designation?')) return;
+    try {
+      const res = await fetch(`/api/masters/designations?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to remove designation');
+        return;
+      }
+      onSaveDesignation(designations.filter((d) => d.id !== id));
+    } catch (err: any) {
+      alert(err.message || 'Error removing designation');
+    }
   };
 
   const handleSaveEmployee = async (userData: {
@@ -851,9 +895,19 @@ export function DesktopManagementView({
                     <span className="font-medium text-slate-800 dark:text-slate-200">{d.name}</span>
                     <span className="ml-2 font-mono text-[10px] text-slate-400">({d.code})</span>
                   </div>
-                  <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
-                    Active
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                      Active
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteDepartment(d.id)}
+                      title="Remove Department"
+                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -886,9 +940,19 @@ export function DesktopManagementView({
               {designations.map((d) => (
                 <div key={d.id} className="py-2.5 flex items-center justify-between">
                   <span className="font-medium text-slate-800 dark:text-slate-200">{d.title}</span>
-                  <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
-                    Active
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                      Active
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteDesignation(d.id)}
+                      title="Remove Designation"
+                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

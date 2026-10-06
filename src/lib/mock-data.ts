@@ -11,18 +11,11 @@ import {
 } from '@/types';
 
 export const INITIAL_DEPARTMENTS: Department[] = [
-  { id: 'dept-1', name: 'Engineering', code: 'ENG', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
-  { id: 'dept-2', name: 'Human Resources', code: 'HR', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
-  { id: 'dept-3', name: 'Operations', code: 'OPS', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
-  { id: 'dept-4', name: 'Sales & Marketing', code: 'SALES', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
+  { id: 'd0000000-0000-0000-0000-000000000001', name: 'General', code: 'GEN', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
 ];
 
 export const INITIAL_DESIGNATIONS: Designation[] = [
-  { id: 'desig-1', title: 'Senior Software Engineer', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
-  { id: 'desig-2', title: 'HR Manager', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
-  { id: 'desig-3', title: 'Operations Lead', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
-  { id: 'desig-4', title: 'Technical Architect', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
-  { id: 'desig-5', title: 'System Administrator', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
+  { id: 'e0000000-0000-0000-0000-000000000001', title: 'Staff', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
 ];
 
 export const INITIAL_PROFILES: UserProfile[] = [];

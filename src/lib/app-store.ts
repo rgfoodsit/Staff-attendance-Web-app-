@@ -37,7 +37,7 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'staff_app_audit_logs',
 };
 
-const CURRENT_APP_VERSION = 'v4_real_world';
+const CURRENT_APP_VERSION = 'v5_neutral_masters';
 
 const EMPTY_USER: UserProfile = {
   id: '',
@@ -69,6 +69,8 @@ export class AppStore {
         localStorage.removeItem(STORAGE_KEYS.CORRECTIONS);
         localStorage.removeItem(STORAGE_KEYS.DAILY_REPORTS);
         localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS);
+        localStorage.removeItem(STORAGE_KEYS.DEPARTMENTS);
+        localStorage.removeItem(STORAGE_KEYS.DESIGNATIONS);
         localStorage.setItem('staff_app_version', CURRENT_APP_VERSION);
       }
     } catch {
