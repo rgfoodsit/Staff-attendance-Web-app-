@@ -46,7 +46,7 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'staff_app_audit_logs',
 };
 
-const CURRENT_APP_VERSION = 'v5_neutral_masters';
+const CURRENT_APP_VERSION = 'v6_live_auth_sync';
 
 const EMPTY_USER: UserProfile = {
   id: '',
@@ -80,6 +80,20 @@ export class AppStore {
         localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS);
         localStorage.removeItem(STORAGE_KEYS.DEPARTMENTS);
         localStorage.removeItem(STORAGE_KEYS.DESIGNATIONS);
+
+        // Sanitize legacy mock session if stored (e.g. user-hr-1, user-admin-1, user-emp-1)
+        const rawUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+        if (rawUser) {
+          try {
+            const parsedUser = JSON.parse(rawUser);
+            if (!parsedUser || !parsedUser.id || String(parsedUser.id).startsWith('user-')) {
+              localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+            }
+          } catch {
+            localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+          }
+        }
+
         localStorage.setItem('staff_app_version', CURRENT_APP_VERSION);
       }
     } catch {
@@ -142,9 +156,14 @@ export class AppStore {
 
   static switchRole(role: UserRole): UserProfile {
     const profiles = this.getProfiles();
-    const user = profiles.find((p) => p && p.role === role) || profiles[0] || EMPTY_USER;
-    this.setCurrentUser(user);
-    return user;
+    const user = profiles.find((p) => p && p.role === role);
+    if (user) {
+      this.setCurrentUser(user);
+      return user;
+    }
+    const current = this.getCurrentUser();
+    if (current && current.role === role) return current;
+    return EMPTY_USER;
   }
 
   // Masters

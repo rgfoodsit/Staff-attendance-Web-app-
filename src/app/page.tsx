@@ -149,7 +149,7 @@ export default function Home() {
 
           if (candidate === 'masters' && sessionUser.role !== 'admin') {
             candidate = 'dashboard';
-          } else if (candidate === 'settings' && sessionUser.role !== 'hr') {
+          } else if (candidate === 'settings' && sessionUser.role !== 'hr' && sessionUser.role !== 'admin') {
             candidate = 'dashboard';
           }
 
@@ -186,7 +186,7 @@ export default function Home() {
       } else {
         if ((DESKTOP_TABS as readonly string[]).includes(urlTab)) {
           if (urlTab === 'masters' && currentUser.role !== 'admin') return;
-          if (urlTab === 'settings' && currentUser.role !== 'hr') return;
+          if (urlTab === 'settings' && currentUser.role !== 'hr' && currentUser.role !== 'admin') return;
           setDesktopActiveTab(urlTab as any);
           try {
             localStorage.setItem('staff_app_desktop_tab', urlTab);
@@ -258,6 +258,22 @@ export default function Home() {
           if (valid.length > 0) {
             setProfiles(valid);
             AppStore.saveProfiles(valid);
+
+            // Reconcile and keep currentUser in exact sync with live database truth
+            const stored = AppStore.getSessionUser();
+            if (stored) {
+              const liveUser = valid.find(
+                (p: any) => p.id === stored.id || (p.employeeId && p.employeeId.toUpperCase() === stored.employeeId?.toUpperCase())
+              );
+              if (liveUser) {
+                setCurrentUser(liveUser);
+                AppStore.setCurrentUser(liveUser);
+              } else if (String(stored.id).startsWith('user-')) {
+                // If stored user was an old deleted mock user, cleanly log out
+                AppStore.logout();
+                setIsAuthenticated(false);
+              }
+            }
           }
         }
       }

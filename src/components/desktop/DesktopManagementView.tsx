@@ -177,7 +177,8 @@ export function DesktopManagementView({
 
   // Filtered records
   const filteredRecords = useMemo(() => {
-    return attendanceRecords.filter((r) => {
+    return (attendanceRecords || []).filter((r) => {
+      if (!r) return false;
       if (filterDept !== 'all' && r.departmentName !== filterDept) return false;
       if (filterStatus !== 'all' && r.status !== filterStatus) return false;
       if (dateRange === 'today' && r.attendanceDate !== todayStr) return false;
@@ -195,7 +196,7 @@ export function DesktopManagementView({
   const staffProfiles = (profiles || []).filter((p) => p && p.role === 'employee');
   const totalEmployees = staffProfiles.length;
   const nonStaffIds = new Set((profiles || []).filter((p) => p && (p.role === 'hr' || p.role === 'admin')).map((p) => p.id));
-  const todayRecords = attendanceRecords.filter((r) => r.attendanceDate === todayStr && !nonStaffIds.has(r.profileId));
+  const todayRecords = (attendanceRecords || []).filter((r) => r && r.attendanceDate === todayStr && !nonStaffIds.has(r.profileId));
   const presentToday = todayRecords.filter((r) => ['present', 'checked_in', 'checked_out'].includes(r.status) && !r.isLate).length;
   const lateToday = todayRecords.filter((r) => r.isLate).length;
   const onLeaveToday = todayRecords.filter((r) => ['leave', 'half_day_leave'].includes(r.status)).length;
@@ -635,11 +636,11 @@ export function DesktopManagementView({
                               <Eye className="w-4 h-4" />
                             </button>
 
-                            {/* Direct HR Adjustment (PRD Section 30) */}
-                            {isHR && (
+                            {/* Direct Attendance Adjustment (HR & Admin) */}
+                            {(isHR || isAdmin) && (
                               <button
                                 onClick={() => setAdjustmentRecord(r)}
-                                title="HR Direct Adjustment"
+                                title="Direct Attendance Adjustment"
                                 className="p-1.5 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition"
                               >
                                 <UserCog className="w-4 h-4" />
@@ -986,17 +987,17 @@ export function DesktopManagementView({
           </div>
 
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {auditLogs.map((log) => (
+            {(auditLogs || []).map((log) => (
               <div key={log.id} className="p-4 text-xs space-y-1 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 dark:text-white">{log.action.toUpperCase()}</span>
-                    <span className="text-slate-400 font-mono text-[11px]">&bull; {log.entityName}</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{(log.action || 'ACTION').toUpperCase()}</span>
+                    <span className="text-slate-400 font-mono text-[11px]">&bull; {log.entityName || 'System'}</span>
                   </div>
-                  <span className="text-[10px] text-slate-400">{new Date(log.createdAt).toLocaleString()}</span>
+                  <span className="text-[10px] text-slate-400">{log.createdAt ? new Date(log.createdAt).toLocaleString() : ''}</span>
                 </div>
                 <div className="text-slate-600 dark:text-slate-300">
-                  <span>Performed by: <strong className="text-slate-900 dark:text-white">{log.performedByName || log.performedBy}</strong></span>
+                  <span>Performed by: <strong className="text-slate-900 dark:text-white">{log.performedByName || log.performedBy || 'System'}</strong></span>
                 </div>
                 {log.reason && (
                   <div className="text-indigo-600 dark:text-indigo-400 italic">
@@ -1009,13 +1010,13 @@ export function DesktopManagementView({
         </div>
       )}
 
-      {/* Tab: Attendance Settings (HR Only, PRD Section 11) */}
-      {activeTab === 'settings' && isHR && (
+      {/* Tab: Attendance Settings (HR & Admin, PRD Section 11) */}
+      {activeTab === 'settings' && (isHR || isAdmin) && (
         <div className="max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-5">
           <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
             <Settings className="w-5 h-5 text-indigo-600" />
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-sm">HR Attendance Timing Rules</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm">Attendance Timing Rules</h3>
               <p className="text-xs text-slate-500">Global organization-wide attendance rules for all staff</p>
             </div>
           </div>
@@ -1127,12 +1128,12 @@ export function DesktopManagementView({
                     </span>
                   </div>
                   <p className="text-sm text-indigo-200/90 font-medium">
-                    {currentUser.designationTitle || (isHR ? 'Human Resources Manager' : 'System Administrator')}
+                    {currentUser.designationTitle || (isAdmin ? 'System Administrator' : isHR ? 'Human Resources Manager' : 'Staff')}
                   </p>
                   <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-slate-300">
                     <span className="font-mono bg-white/10 px-2 py-0.5 rounded-md">ID: {currentUser.employeeId}</span>
                     <span>•</span>
-                    <span>{currentUser.departmentName || (isHR ? 'Human Resources' : 'Engineering')}</span>
+                    <span>{currentUser.departmentName || (isAdmin ? 'Administration' : isHR ? 'Human Resources' : 'General')}</span>
                     <span>•</span>
                     <span className="uppercase text-[11px] font-bold tracking-wider text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-md">
                       Role: {currentUser.role}
@@ -1170,21 +1171,21 @@ export function DesktopManagementView({
                   <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-1">
                     <span className="text-slate-400 font-medium">System Role</span>
                     <p className="font-bold text-indigo-600 dark:text-indigo-400 uppercase text-sm">
-                      {isHR ? 'Human Resources (HR)' : 'System Administrator (Admin)'}
+                      {isAdmin ? 'System Administrator (Admin)' : isHR ? 'Human Resources (HR)' : 'Staff Member'}
                     </p>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-1">
                     <span className="text-slate-400 font-medium">Department</span>
                     <p className="font-semibold text-slate-800 dark:text-slate-200">
-                      {currentUser.departmentName || (isHR ? 'Human Resources' : 'Engineering')}
+                      {currentUser.departmentName || (isAdmin ? 'Administration' : isHR ? 'Human Resources' : 'General')}
                     </p>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-1">
                     <span className="text-slate-400 font-medium">Designation</span>
                     <p className="font-semibold text-slate-800 dark:text-slate-200">
-                      {currentUser.designationTitle || (isHR ? 'HR Manager' : 'System Administrator')}
+                      {currentUser.designationTitle || (isAdmin ? 'System Administrator' : isHR ? 'HR Manager' : 'Staff')}
                     </p>
                   </div>
 
@@ -1286,13 +1287,46 @@ export function DesktopManagementView({
                   <span>Assigned Role Privileges</span>
                 </h3>
                 <p className="text-xs text-slate-500 mb-4">
-                  {isHR 
+                  {isAdmin 
+                    ? 'Privileges granted to System Superuser Administration:' 
+                    : isHR 
                     ? 'Privileges granted to Human Resources Management:' 
-                    : 'Privileges granted to System Superuser Administration:'}
+                    : 'Privileges granted to Staff Member:'}
                 </p>
 
                 <div className="space-y-2.5">
-                  {isHR ? (
+                  {isAdmin ? (
+                    <>
+                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Manage Departments Master (Create, Edit, Deactivate)</span>
+                      </div>
+                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Manage Designations Master (Create, Edit, Deactivate)</span>
+                      </div>
+                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Full User Role assignment & administration (Employee, HR, Admin)</span>
+                      </div>
+                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Configure official check-in timing & late thresholds</span>
+                      </div>
+                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Review & approve attendance corrections and direct adjustments</span>
+                      </div>
+                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Full access to System Audit Logs & security trails</span>
+                      </div>
+                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Comprehensive reporting & master data export</span>
+                      </div>
+                    </>
+                  ) : (
                     <>
                       <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
                         <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -1321,33 +1355,6 @@ export function DesktopManagementView({
                       <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
                         <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                         <span>View complete system audit trail</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Manage Departments Master (Create, Edit, Deactivate)</span>
-                      </div>
-                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Manage Designations Master (Create, Edit, Deactivate)</span>
-                      </div>
-                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Full User Role assignment & administration (Employee, HR, Admin)</span>
-                      </div>
-                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Review & approve attendance corrections</span>
-                      </div>
-                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Full access to System Audit Logs & security trails</span>
-                      </div>
-                      <div className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Comprehensive reporting & master data export</span>
                       </div>
                     </>
                   )}

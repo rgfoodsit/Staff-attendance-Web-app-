@@ -206,8 +206,8 @@ export function LeftSidebar({
               </button>
             )}
 
-            {/* Settings (HR Only) */}
-            {isHR && (
+            {/* Settings (HR & Admin) */}
+            {(isHR || isAdmin) && (
               <button
                 onClick={() => onTabChange?.('settings')}
                 title="Attendance Settings"
