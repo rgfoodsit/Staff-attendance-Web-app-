@@ -102,7 +102,7 @@ export class AppStore {
   // Current User Session
   static getCurrentUser(): UserProfile {
     const user = this.getItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
-    if (!user || !['employee', 'hr', 'admin'].includes(user.role)) {
+    if (!user || typeof user !== 'object' || !user.role || !['employee', 'hr', 'admin'].includes(user.role)) {
       return EMPTY_USER;
     }
     return user;
@@ -111,13 +111,14 @@ export class AppStore {
   static getSessionUser(): UserProfile | null {
     if (!this.isClient) return null;
     const user = this.getItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
-    if (!user || !['employee', 'hr', 'admin'].includes(user.role)) {
+    if (!user || typeof user !== 'object' || !user.role || !['employee', 'hr', 'admin'].includes(user.role)) {
       return null;
     }
     return user;
   }
 
   static setCurrentUser(user: UserProfile): void {
+    if (!user || typeof user !== 'object') return;
     this.setItem(STORAGE_KEYS.CURRENT_USER, user);
   }
 
@@ -132,35 +133,55 @@ export class AppStore {
 
   static switchRole(role: UserRole): UserProfile {
     const profiles = this.getProfiles();
-    const user = profiles.find((p) => p.role === role) || profiles[0];
+    const user = profiles.find((p) => p && p.role === role) || profiles[0] || EMPTY_USER;
     this.setCurrentUser(user);
     return user;
   }
 
   // Masters
   static getDepartments(): Department[] {
-    return this.getItem<Department[]>(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
+    const raw = this.getItem<Department[]>(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
+    if (!Array.isArray(raw)) return INITIAL_DEPARTMENTS;
+    return raw.filter((d): d is Department => Boolean(d && typeof d === 'object' && d.id));
   }
 
   static saveDepartments(depts: Department[]): void {
-    this.setItem(STORAGE_KEYS.DEPARTMENTS, depts);
+    if (!Array.isArray(depts)) return;
+    const clean = depts.filter((d): d is Department => Boolean(d && typeof d === 'object' && d.id));
+    this.setItem(STORAGE_KEYS.DEPARTMENTS, clean);
   }
 
   static getDesignations(): Designation[] {
-    return this.getItem<Designation[]>(STORAGE_KEYS.DESIGNATIONS, INITIAL_DESIGNATIONS);
+    const raw = this.getItem<Designation[]>(STORAGE_KEYS.DESIGNATIONS, INITIAL_DESIGNATIONS);
+    if (!Array.isArray(raw)) return INITIAL_DESIGNATIONS;
+    return raw.filter((d): d is Designation => Boolean(d && typeof d === 'object' && d.id));
   }
 
   static saveDesignations(desigs: Designation[]): void {
-    this.setItem(STORAGE_KEYS.DESIGNATIONS, desigs);
+    if (!Array.isArray(desigs)) return;
+    const clean = desigs.filter((d): d is Designation => Boolean(d && typeof d === 'object' && d.id));
+    this.setItem(STORAGE_KEYS.DESIGNATIONS, clean);
   }
 
   static getProfiles(): UserProfile[] {
-    const profiles = this.getItem<UserProfile[]>(STORAGE_KEYS.PROFILES, INITIAL_PROFILES);
-    return profiles.filter((p) => ['employee', 'hr', 'admin'].includes(p.role));
+    const raw = this.getItem<UserProfile[]>(STORAGE_KEYS.PROFILES, INITIAL_PROFILES);
+    if (!Array.isArray(raw)) return INITIAL_PROFILES;
+    const valid = raw.filter(
+      (p): p is UserProfile => Boolean(p && typeof p === 'object' && p.id && p.role && ['employee', 'hr', 'admin'].includes(p.role))
+    );
+    // Self-healing: if localStorage had null or corrupt entries, sanitize immediately
+    if (valid.length !== raw.length) {
+      this.setItem(STORAGE_KEYS.PROFILES, valid);
+    }
+    return valid.length > 0 ? valid : INITIAL_PROFILES;
   }
 
   static saveProfiles(profiles: UserProfile[]): void {
-    this.setItem(STORAGE_KEYS.PROFILES, profiles);
+    if (!Array.isArray(profiles)) return;
+    const clean = profiles.filter(
+      (p): p is UserProfile => Boolean(p && typeof p === 'object' && p.id && p.role)
+    );
+    this.setItem(STORAGE_KEYS.PROFILES, clean);
   }
 
   // Settings
@@ -189,7 +210,10 @@ export class AppStore {
 
   // Attendance Records
   static getAttendanceRecords(): AttendanceRecord[] {
-    const records = this.getItem<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
+    const raw = this.getItem<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
+    const records = Array.isArray(raw)
+      ? raw.filter((r): r is AttendanceRecord => Boolean(r && typeof r === 'object' && r.id))
+      : INITIAL_ATTENDANCE;
     const today = getLocalDateString();
     let hasChanges = false;
 
@@ -514,7 +538,9 @@ export class AppStore {
 
   // Daily Work Reports
   static getDailyReports(): DailyWorkReport[] {
-    return this.getItem<DailyWorkReport[]>(STORAGE_KEYS.DAILY_REPORTS, INITIAL_DAILY_REPORTS);
+    const raw = this.getItem<DailyWorkReport[]>(STORAGE_KEYS.DAILY_REPORTS, INITIAL_DAILY_REPORTS);
+    if (!Array.isArray(raw)) return INITIAL_DAILY_REPORTS;
+    return raw.filter((r): r is DailyWorkReport => Boolean(r && typeof r === 'object' && r.id));
   }
 
   static getTodayWorkReport(profileId: string): DailyWorkReport | undefined {
@@ -557,7 +583,9 @@ export class AppStore {
 
   // Corrections
   static getCorrections(): AttendanceCorrection[] {
-    return this.getItem<AttendanceCorrection[]>(STORAGE_KEYS.CORRECTIONS, INITIAL_CORRECTIONS);
+    const raw = this.getItem<AttendanceCorrection[]>(STORAGE_KEYS.CORRECTIONS, INITIAL_CORRECTIONS);
+    if (!Array.isArray(raw)) return INITIAL_CORRECTIONS;
+    return raw.filter((c): c is AttendanceCorrection => Boolean(c && typeof c === 'object' && c.id));
   }
 
   static submitCorrection(correction: Omit<AttendanceCorrection, 'id' | 'status' | 'createdAt'>): AttendanceCorrection {
@@ -631,7 +659,7 @@ export class AppStore {
 
   // Notifications
   static getNotifications(profileId?: string): InAppNotification[] {
-    const list = this.getItem<InAppNotification[]>(STORAGE_KEYS.NOTIFICATIONS, [
+    const raw = this.getItem<InAppNotification[]>(STORAGE_KEYS.NOTIFICATIONS, [
       {
         id: 'notif-1',
         recipientId: 'user-emp-1',
@@ -642,6 +670,9 @@ export class AppStore {
         createdAt: new Date().toISOString(),
       },
     ]);
+    const list = Array.isArray(raw)
+      ? raw.filter((n): n is InAppNotification => Boolean(n && typeof n === 'object' && n.id))
+      : [];
     if (!profileId) return list;
     return list.filter((n) => n.recipientId === profileId);
   }
@@ -666,7 +697,9 @@ export class AppStore {
 
   // Audit Logs
   static getAuditLogs(): AuditLogEntry[] {
-    return this.getItem<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS);
+    const raw = this.getItem<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS);
+    if (!Array.isArray(raw)) return INITIAL_AUDIT_LOGS;
+    return raw.filter((l): l is AuditLogEntry => Boolean(l && typeof l === 'object' && l.id));
   }
 
   static logAudit(entry: Omit<AuditLogEntry, 'id' | 'createdAt'>): void {

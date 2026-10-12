@@ -316,7 +316,7 @@ export function DesktopManagementView({
   }) => {
     let updatedProfiles: UserProfile[];
     if (editingEmployee) {
-      updatedProfiles = profiles.map((p) => {
+      updatedProfiles = (profiles || []).filter((p): p is UserProfile => Boolean(p && p.id)).map((p) => {
         if (p.id === editingEmployee.id) {
           return {
             ...p,
@@ -357,8 +357,14 @@ export function DesktopManagementView({
           return;
         }
 
-        const newProfile: UserProfile = data.profile;
-        updatedProfiles = [newProfile, ...profiles];
+        const newProfile: UserProfile | undefined = data.profile || data.user;
+        if (!newProfile || !newProfile.id) {
+          alert('Employee account created, but could not load profile details.');
+          return;
+        }
+
+        const cleanProfiles = (profiles || []).filter((p): p is UserProfile => Boolean(p && p.id));
+        updatedProfiles = [newProfile, ...cleanProfiles.filter((p) => p.id !== newProfile.id)];
         onSaveProfiles(updatedProfiles);
         setShowEmployeeModal(false);
         setEditingEmployee(null);
@@ -369,7 +375,7 @@ export function DesktopManagementView({
   };
 
   const handleToggleEmployeeActive = (profileId: string) => {
-    const updated = profiles.map((p) => {
+    const updated = (profiles || []).filter((p): p is UserProfile => Boolean(p && p.id)).map((p) => {
       if (p.id === profileId) {
         return { ...p, isActive: !p.isActive, updatedAt: new Date().toISOString() };
       }
@@ -680,7 +686,7 @@ export function DesktopManagementView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                {profiles.map((p) => (
+                {(profiles || []).filter((p): p is UserProfile => Boolean(p && p.id)).map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">

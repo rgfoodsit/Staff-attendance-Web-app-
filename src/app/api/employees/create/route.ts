@@ -7,18 +7,22 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { fullName, employeeId, email, password, departmentId, designationId, role = 'employee' } = body;
 
-    if (!fullName || !employeeId || !email || !password || !departmentId || !designationId) {
+    if (!fullName || !employeeId || !password || !departmentId || !designationId) {
       return NextResponse.json(
-        { error: 'All fields (Full Name, Employee ID, Email, Password, Department, Designation) are required.' },
+        { error: 'All required fields (Full Name, Employee ID, Password, Department, Designation) must be provided.' },
         { status: 400 }
       );
     }
+
+    const cleanEmpId = employeeId.trim();
+    const rawEmail = email && typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : '';
+    const emailToUse = rawEmail || `${cleanEmpId.toLowerCase().replace(/[^a-z0-9]/g, '')}@company.local`;
 
     // 1. Check if employee ID or email already exists in profiles
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('employee_id')
-      .ilike('employee_id', employeeId.trim())
+      .ilike('employee_id', cleanEmpId)
       .maybeSingle();
 
     if (existingProfile) {
@@ -30,12 +34,12 @@ export async function POST(req: Request) {
 
     // 2. Create user in Supabase auth.users
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: email.trim().toLowerCase(),
+      email: emailToUse,
       password: password,
       email_confirm: true,
       user_metadata: {
         full_name: fullName.trim(),
-        employee_id: employeeId.trim(),
+        employee_id: cleanEmpId,
         role: role,
       },
     });
@@ -54,7 +58,7 @@ export async function POST(req: Request) {
       .from('profiles')
       .insert({
         id: userId,
-        employee_id: employeeId.trim(),
+        employee_id: cleanEmpId,
         full_name: fullName.trim(),
         department_id: departmentId,
         designation_id: designationId,
@@ -89,6 +93,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       user: formattedUser,
+      profile: formattedUser,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });

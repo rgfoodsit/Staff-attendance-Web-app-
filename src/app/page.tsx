@@ -123,9 +123,12 @@ export default function Home() {
       const empRes = await fetch('/api/employees/list');
       if (empRes.ok) {
         const empData = await empRes.json();
-        if (empData.profiles) {
-          setProfiles(empData.profiles);
-          AppStore.saveProfiles(empData.profiles);
+        if (empData.profiles && Array.isArray(empData.profiles)) {
+          const valid = empData.profiles.filter((p: any) => Boolean(p && p.id && p.role));
+          if (valid.length > 0) {
+            setProfiles(valid);
+            AppStore.saveProfiles(valid);
+          }
         }
       }
 
