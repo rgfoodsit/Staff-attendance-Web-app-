@@ -74,7 +74,7 @@ export function EmployeeView({
       if (urlTab === 'history' || urlTab === 'profile' || urlTab === 'home') {
         return urlTab as 'home' | 'history' | 'profile';
       }
-      const saved = localStorage.getItem('staff_app_employee_tab');
+      const saved = sessionStorage.getItem('staff_app_employee_tab') || localStorage.getItem('staff_app_employee_tab');
       if (saved === 'history' || saved === 'profile' || saved === 'home') {
         return saved as 'home' | 'history' | 'profile';
       }
@@ -100,6 +100,7 @@ export function EmployeeView({
     setInternalTab(tab);
     if (typeof window !== 'undefined') {
       try {
+        sessionStorage.setItem('staff_app_employee_tab', tab);
         localStorage.setItem('staff_app_employee_tab', tab);
         const url = new URL(window.location.href);
         if (url.searchParams.get('tab') !== tab) {

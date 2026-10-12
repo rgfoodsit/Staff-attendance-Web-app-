@@ -40,7 +40,7 @@ export default function Home() {
       if (urlTab && (['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as string[]).includes(urlTab)) {
         return urlTab as any;
       }
-      const saved = localStorage.getItem('staff_app_desktop_tab');
+      const saved = sessionStorage.getItem('staff_app_desktop_tab') || localStorage.getItem('staff_app_desktop_tab');
       if (saved && (['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as string[]).includes(saved)) {
         return saved as any;
       }
@@ -53,7 +53,7 @@ export default function Home() {
       if (urlTab && ['home', 'history', 'profile'].includes(urlTab)) {
         return urlTab as 'home' | 'history' | 'profile';
       }
-      const saved = localStorage.getItem('staff_app_employee_tab');
+      const saved = sessionStorage.getItem('staff_app_employee_tab') || localStorage.getItem('staff_app_employee_tab');
       if (saved && ['home', 'history', 'profile'].includes(saved)) {
         return saved as 'home' | 'history' | 'profile';
       }
@@ -83,6 +83,7 @@ export default function Home() {
     setDesktopActiveTab(tab);
     if (typeof window !== 'undefined') {
       try {
+        sessionStorage.setItem('staff_app_desktop_tab', tab);
         localStorage.setItem('staff_app_desktop_tab', tab);
       } catch {}
       updateUrlTab(tab);
@@ -93,6 +94,7 @@ export default function Home() {
     setEmployeeActiveTab(tab);
     if (typeof window !== 'undefined') {
       try {
+        sessionStorage.setItem('staff_app_employee_tab', tab);
         localStorage.setItem('staff_app_employee_tab', tab);
       } catch {}
       updateUrlTab(tab);
@@ -115,7 +117,21 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const sessionUser = AppStore.getSessionUser();
+    let sessionUser = AppStore.getSessionUser();
+
+    // Check if a specific role is pinned via URL query parameter (e.g. ?role=admin or ?role=hr)
+    if (typeof window !== 'undefined') {
+      const urlRole = new URLSearchParams(window.location.search).get('role') as UserRole | null;
+      if (urlRole && ['admin', 'hr', 'employee'].includes(urlRole)) {
+        if (!sessionUser || sessionUser.role !== urlRole) {
+          const switched = AppStore.switchRole(urlRole);
+          if (switched && switched.id) {
+            sessionUser = switched;
+          }
+        }
+      }
+    }
+
     if (sessionUser) {
       setCurrentUser(sessionUser);
       setIsAuthenticated(true);
@@ -126,7 +142,7 @@ export default function Home() {
         const urlTab = urlParams.get('tab');
 
         if (sessionUser.role === 'employee') {
-          const savedEmpTab = localStorage.getItem('staff_app_employee_tab') as any;
+          const savedEmpTab = (sessionStorage.getItem('staff_app_employee_tab') || localStorage.getItem('staff_app_employee_tab')) as any;
           let initialTab: 'home' | 'history' | 'profile' = 'home';
           if (urlTab && (EMPLOYEE_TABS as readonly string[]).includes(urlTab)) {
             initialTab = urlTab as 'home' | 'history' | 'profile';
@@ -136,10 +152,11 @@ export default function Home() {
           setEmployeeActiveTab(initialTab);
           updateUrlTab(initialTab);
           try {
+            sessionStorage.setItem('staff_app_employee_tab', initialTab);
             localStorage.setItem('staff_app_employee_tab', initialTab);
           } catch {}
         } else {
-          const savedDeskTab = localStorage.getItem('staff_app_desktop_tab') as any;
+          const savedDeskTab = (sessionStorage.getItem('staff_app_desktop_tab') || localStorage.getItem('staff_app_desktop_tab')) as any;
           let candidate: any = 'dashboard';
           if (urlTab && (DESKTOP_TABS as readonly string[]).includes(urlTab)) {
             candidate = urlTab;
@@ -156,6 +173,7 @@ export default function Home() {
           setDesktopActiveTab(candidate);
           updateUrlTab(candidate);
           try {
+            sessionStorage.setItem('staff_app_desktop_tab', candidate);
             localStorage.setItem('staff_app_desktop_tab', candidate);
           } catch {}
         }
@@ -180,6 +198,7 @@ export default function Home() {
         if ((EMPLOYEE_TABS as readonly string[]).includes(urlTab)) {
           setEmployeeActiveTab(urlTab as any);
           try {
+            sessionStorage.setItem('staff_app_employee_tab', urlTab);
             localStorage.setItem('staff_app_employee_tab', urlTab);
           } catch {}
         }
@@ -189,6 +208,7 @@ export default function Home() {
           if (urlTab === 'settings' && currentUser.role !== 'hr' && currentUser.role !== 'admin') return;
           setDesktopActiveTab(urlTab as any);
           try {
+            sessionStorage.setItem('staff_app_desktop_tab', urlTab);
             localStorage.setItem('staff_app_desktop_tab', urlTab);
           } catch {}
         }
@@ -349,10 +369,13 @@ export default function Home() {
     AppStore.logout();
     if (typeof window !== 'undefined') {
       try {
+        sessionStorage.removeItem('staff_app_desktop_tab');
+        sessionStorage.removeItem('staff_app_employee_tab');
         localStorage.removeItem('staff_app_desktop_tab');
         localStorage.removeItem('staff_app_employee_tab');
         const url = new URL(window.location.href);
         url.searchParams.delete('tab');
+        url.searchParams.delete('role');
         window.history.replaceState(null, '', url.pathname);
       } catch {}
     }

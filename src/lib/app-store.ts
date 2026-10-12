@@ -46,7 +46,7 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'staff_app_audit_logs',
 };
 
-const CURRENT_APP_VERSION = 'v6_live_auth_sync';
+const CURRENT_APP_VERSION = 'v7_tab_isolated_sessions';
 
 const EMPTY_USER: UserProfile = {
   id: '',
@@ -94,6 +94,10 @@ export class AppStore {
           }
         }
 
+        try {
+          sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        } catch {}
+
         localStorage.setItem('staff_app_version', CURRENT_APP_VERSION);
       }
     } catch {
@@ -122,35 +126,90 @@ export class AppStore {
     }
   }
 
-  // Current User Session
+  // Current User Session (Tab-Isolated via sessionStorage, with localStorage fallback)
   static getCurrentUser(): UserProfile {
+    // 1. Check tab-isolated sessionStorage first so different tabs/windows maintain independent logins
+    if (this.isClient) {
+      try {
+        const sess = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+        if (sess) {
+          const user = JSON.parse(sess);
+          if (user && typeof user === 'object' && user.role && ['employee', 'hr', 'admin'].includes(user.role)) {
+            return user;
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Fall back to localStorage (e.g. initial window/tab open)
     const user = this.getItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
     if (!user || typeof user !== 'object' || !user.role || !['employee', 'hr', 'admin'].includes(user.role)) {
       return EMPTY_USER;
+    }
+
+    // Seed this tab's sessionStorage with the restored user
+    if (this.isClient) {
+      try {
+        sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      } catch {}
     }
     return user;
   }
 
   static getSessionUser(): UserProfile | null {
     if (!this.isClient) return null;
+
+    // 1. Check tab-isolated sessionStorage first (keeps HR in Tab 1, Admin in Tab 2 completely independent)
+    try {
+      const sess = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (sess) {
+        const user = JSON.parse(sess);
+        if (user && typeof user === 'object' && user.role && ['employee', 'hr', 'admin'].includes(user.role)) {
+          return user;
+        }
+      }
+    } catch {}
+
+    // 2. Fall back to localStorage (first launch of a tab)
     const user = this.getItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
     if (!user || typeof user !== 'object' || !user.role || !['employee', 'hr', 'admin'].includes(user.role)) {
       return null;
     }
+
+    // Seed this tab's sessionStorage
+    try {
+      sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+    } catch {}
     return user;
   }
 
   static setCurrentUser(user: UserProfile): void {
     if (!user || typeof user !== 'object') return;
+    if (this.isClient) {
+      try {
+        // Tab-isolated session storage: ALWAYS writes to this tab's session
+        sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      } catch {}
+    }
+    // Also save to localStorage as a fallback for cold restarts
     this.setItem(STORAGE_KEYS.CURRENT_USER, user);
   }
 
   static logout(): void {
     if (!this.isClient) return;
     try {
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      sessionStorage.removeItem('staff_app_desktop_tab');
+      sessionStorage.removeItem('staff_app_employee_tab');
     } catch (e) {
-      console.error('Logout error', e);
+      console.error('Logout error (sessionStorage)', e);
+    }
+    try {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      localStorage.removeItem('staff_app_desktop_tab');
+      localStorage.removeItem('staff_app_employee_tab');
+    } catch (e) {
+      console.error('Logout error (localStorage)', e);
     }
   }
 
