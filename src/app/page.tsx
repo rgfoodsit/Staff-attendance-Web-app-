@@ -388,12 +388,13 @@ export default function Home() {
         const allCorrs = AppStore.getCorrections();
         const updated = allCorrs.map((c) => (c.id === localCorr.id ? resData.correction : c));
         AppStore.saveCorrections(updated);
-        refreshState();
+        setCorrections(updated);
       }
     } catch (err) {
       console.warn('Backend correction submit sync:', err);
     }
 
+    refreshState();
     alert('Correction request submitted successfully for management review.');
   };
 
@@ -426,6 +427,7 @@ export default function Home() {
           if (idx >= 0) {
             recs[idx] = resData.updatedAttendanceRecord;
             AppStore.saveAttendanceRecords(recs);
+            setAttendanceRecords(recs);
           }
         }
         const corrRes = await fetch('/api/attendance/corrections');
@@ -518,6 +520,7 @@ export default function Home() {
               onSubmitCorrection={handleSubmitCorrection}
               onRefresh={() => {
                 setCurrentDateStr(getLocalDateString());
+                syncSupabase();
                 refreshState();
               }}
               onLogout={() => {

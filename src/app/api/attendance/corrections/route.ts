@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getLocalDateString } from '@/lib/utils';
 
-// GET: Retrieve all correction requests with employee & attendance info
 export async function GET() {
   try {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('attendance_corrections')
-      .select(`
-        *,
-        profiles:profile_id(full_name, employee_id),
-        reviewers:reviewed_by(full_name)
-      `)
+      .select('*, profiles:profile_id(full_name, employee_id), reviewer:reviewed_by(full_name)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -20,8 +16,8 @@ export async function GET() {
       id: c.id,
       attendanceId: c.attendance_id,
       profileId: c.profile_id,
-      employeeName: c.profiles?.full_name || '',
-      employeeId: c.profiles?.employee_id || '',
+      employeeName: c.profiles?.full_name || 'Staff Member',
+      employeeId: c.profiles?.employee_id || 'EMP',
       correctionType: c.correction_type,
       originalCheckinTime: c.original_checkin_time,
       originalCheckoutTime: c.original_checkout_time,
@@ -32,7 +28,7 @@ export async function GET() {
       reason: c.reason,
       status: c.status,
       reviewedBy: c.reviewed_by,
-      reviewedByName: c.reviewers?.full_name,
+      reviewedByName: c.reviewer?.full_name,
       reviewedAt: c.reviewed_at,
       reviewRemarks: c.review_remarks,
       createdAt: c.created_at,
@@ -40,11 +36,10 @@ export async function GET() {
 
     return NextResponse.json({ corrections: formatted });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error fetching corrections' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Error loading corrections' }, { status: 500 });
   }
 }
 
-// POST: Submit a new attendance correction request
 export async function POST(req: Request) {
   try {
     const supabase = createAdminClient();
@@ -62,20 +57,19 @@ export async function POST(req: Request) {
       reason,
     } = body;
 
-    if (!attendanceId || !profileId || !correctionType || !reason) {
+    if (!profileId || !reason || !correctionType) {
       return NextResponse.json(
-        { error: 'Missing required correction fields (attendanceId, profileId, correctionType, reason).' },
+        { error: 'Profile ID, correction type, and reason are required' },
         { status: 400 }
       );
     }
 
-    // Verify or find real attendance record UUID in Supabase
-    let validAttendanceId = attendanceId;
+    // Ensure attendance record exists in Supabase so foreign key is satisfied
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(attendanceId);
+    let validAttendanceId = attendanceId;
 
     if (!isUuid) {
-      // Find the user's latest attendance record for reference
-      const { data: latestRecord } = await supabase
+      const { data: existingRec } = await supabase
         .from('attendance_records')
         .select('id')
         .eq('profile_id', profileId)
@@ -83,17 +77,45 @@ export async function POST(req: Request) {
         .limit(1)
         .maybeSingle();
 
-      if (latestRecord) {
-        validAttendanceId = latestRecord.id;
+      if (existingRec) {
+        validAttendanceId = existingRec.id;
       } else {
-        return NextResponse.json(
-          { error: 'Attendance record not found in database to link correction request.' },
-          { status: 404 }
-        );
+        const { data: newRec } = await supabase
+          .from('attendance_records')
+          .insert({
+            profile_id: profileId,
+            attendance_date: getLocalDateString(),
+            status: originalStatus || 'checked_in',
+            checkin_time: originalCheckinTime || new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        if (newRec) validAttendanceId = newRec.id;
+      }
+    } else {
+      const { data: exists } = await supabase
+        .from('attendance_records')
+        .select('id')
+        .eq('id', validAttendanceId)
+        .maybeSingle();
+
+      if (!exists) {
+        const { data: created } = await supabase
+          .from('attendance_records')
+          .insert({
+            id: validAttendanceId,
+            profile_id: profileId,
+            attendance_date: getLocalDateString(),
+            status: originalStatus || 'checked_in',
+            checkin_time: originalCheckinTime || new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        if (created) validAttendanceId = created.id;
       }
     }
 
-    const { data: created, error } = await supabase
+    const { data: insertResult, error: insertErr } = await supabase
       .from('attendance_corrections')
       .insert({
         attendance_id: validAttendanceId,
@@ -111,24 +133,27 @@ export async function POST(req: Request) {
       .select('*, profiles:profile_id(full_name, employee_id)')
       .single();
 
-    if (error) throw error;
+    if (insertErr) throw insertErr;
 
     const formatted = {
-      id: created.id,
-      attendanceId: created.attendance_id,
-      profileId: created.profile_id,
-      employeeName: created.profiles?.full_name,
-      employeeId: created.profiles?.employee_id,
-      correctionType: created.correction_type,
-      originalCheckinTime: created.original_checkin_time,
-      originalCheckoutTime: created.original_checkout_time,
-      originalStatus: created.original_status,
-      requestedCheckinTime: created.requested_checkin_time,
-      requestedCheckoutTime: created.requested_checkout_time,
-      requestedStatus: created.requested_status,
-      reason: created.reason,
-      status: created.status,
-      createdAt: created.created_at,
+      id: insertResult.id,
+      attendanceId: insertResult.attendance_id,
+      profileId: insertResult.profile_id,
+      employeeName: insertResult.profiles?.full_name || 'Staff Member',
+      employeeId: insertResult.profiles?.employee_id || 'EMP',
+      correctionType: insertResult.correction_type,
+      originalCheckinTime: insertResult.original_checkin_time,
+      originalCheckoutTime: insertResult.original_checkout_time,
+      originalStatus: insertResult.original_status,
+      requestedCheckinTime: insertResult.requested_checkin_time,
+      requestedCheckoutTime: insertResult.requested_checkout_time,
+      requestedStatus: insertResult.requested_status,
+      reason: insertResult.reason,
+      status: insertResult.status,
+      reviewedBy: insertResult.reviewed_by,
+      reviewedAt: insertResult.reviewed_at,
+      reviewRemarks: insertResult.review_remarks,
+      createdAt: insertResult.created_at,
     };
 
     return NextResponse.json({ success: true, correction: formatted });
@@ -137,7 +162,6 @@ export async function POST(req: Request) {
   }
 }
 
-// PATCH: Review a correction (Approve / Reject)
 export async function PATCH(req: Request) {
   try {
     const supabase = createAdminClient();
@@ -145,126 +169,138 @@ export async function PATCH(req: Request) {
     const { correctionId, status, reviewRemarks, reviewerId } = body;
 
     if (!correctionId || !status || !['approved', 'rejected'].includes(status)) {
-      return NextResponse.json({ error: 'Valid correctionId and status (approved or rejected) are required.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Valid correction ID and status (approved/rejected) are required' },
+        { status: 400 }
+      );
     }
 
-    // 1. Fetch current correction
-    const { data: current, error: fetchErr } = await supabase
+    const { data: correction, error: fetchErr } = await supabase
       .from('attendance_corrections')
       .select('*')
       .eq('id', correctionId)
       .single();
 
-    if (fetchErr || !current) {
-      return NextResponse.json({ error: 'Correction request not found.' }, { status: 404 });
+    if (fetchErr || !correction) {
+      return NextResponse.json({ error: 'Correction record not found' }, { status: 404 });
     }
 
-    const now = new Date().toISOString();
-
-    // 2. Update correction status
-    const { data: updated, error: updateErr } = await supabase
+    const reviewedAt = new Date().toISOString();
+    const { data: updatedCorr, error: updateErr } = await supabase
       .from('attendance_corrections')
       .update({
-        status: status,
+        status,
         reviewed_by: reviewerId || null,
-        reviewed_at: now,
+        reviewed_at: reviewedAt,
         review_remarks: reviewRemarks || null,
       })
       .eq('id', correctionId)
-      .select('*, profiles:profile_id(full_name, employee_id), reviewers:reviewed_by(full_name)')
+      .select('*, profiles:profile_id(full_name, employee_id), reviewer:reviewed_by(full_name)')
       .single();
 
     if (updateErr) throw updateErr;
 
-    // 3. If approved, apply the requested changes to the linked attendance_records row
     let updatedAttendanceRecord = null;
     if (status === 'approved') {
-      const { data: attRecord } = await supabase
+      const { data: currentAtt } = await supabase
         .from('attendance_records')
         .select('*')
-        .eq('id', current.attendance_id)
-        .single();
+        .eq('id', correction.attendance_id)
+        .maybeSingle();
 
-      if (attRecord) {
-        const newCheckin = current.requested_checkin_time || attRecord.effective_checkin_time || attRecord.checkin_time;
-        const newCheckout = current.requested_checkout_time || attRecord.effective_checkout_time || attRecord.checkout_time;
-        let duration = attRecord.working_duration_minutes;
+      if (currentAtt) {
+        const newCheckin =
+          correction.requested_checkin_time ||
+          currentAtt.effective_checkin_time ||
+          currentAtt.checkin_time;
+        const newCheckout =
+          correction.requested_checkout_time ||
+          currentAtt.effective_checkout_time ||
+          currentAtt.checkout_time;
 
+        let duration = currentAtt.working_duration_minutes;
         if (newCheckin && newCheckout) {
-          duration = Math.max(0, Math.round((new Date(newCheckout).getTime() - new Date(newCheckin).getTime()) / (1000 * 60)));
+          duration = Math.max(
+            0,
+            Math.round(
+              (new Date(newCheckout).getTime() - new Date(newCheckin).getTime()) / (1000 * 60)
+            )
+          );
         }
 
-        const newStatus = current.requested_status || (newCheckout ? 'checked_out' : attRecord.status);
+        const updateData: any = {
+          effective_checkin_time: newCheckin,
+          effective_checkout_time: newCheckout,
+          status: correction.requested_status || (newCheckout ? 'checked_out' : currentAtt.status),
+          working_duration_minutes: duration,
+          is_hr_adjusted: true,
+          hr_adjustment_reason: `Correction Approved: ${correction.reason}`,
+          adjusted_by: reviewerId || null,
+          adjusted_at: reviewedAt,
+          updated_at: reviewedAt,
+        };
 
-        const { data: appliedRecord, error: applyErr } = await supabase
+        const { data: updAtt } = await supabase
           .from('attendance_records')
-          .update({
-            effective_checkin_time: current.requested_checkin_time || attRecord.effective_checkin_time,
-            effective_checkout_time: current.requested_checkout_time || attRecord.effective_checkout_time,
-            status: newStatus,
-            working_duration_minutes: duration,
-            is_hr_adjusted: true,
-            hr_adjustment_reason: `Correction Approved: ${current.reason}`,
-            adjusted_by: reviewerId || null,
-            adjusted_at: now,
-            updated_at: now,
-          })
-          .eq('id', current.attendance_id)
+          .update(updateData)
+          .eq('id', correction.attendance_id)
           .select('*, profiles:profile_id(full_name, employee_id, departments:department_id(name), designations:designation_id(title))')
           .single();
 
-        if (!applyErr && appliedRecord) {
+        if (updAtt) {
           updatedAttendanceRecord = {
-            id: appliedRecord.id,
-            profileId: appliedRecord.profile_id,
-            employeeName: appliedRecord.profiles?.full_name,
-            employeeId: appliedRecord.profiles?.employee_id,
-            departmentName: appliedRecord.profiles?.departments?.name,
-            designationTitle: appliedRecord.profiles?.designations?.title,
-            attendanceDate: appliedRecord.attendance_date,
-            status: appliedRecord.status,
-            isLate: appliedRecord.is_late,
-            isHrAdjusted: appliedRecord.is_hr_adjusted,
-            hrAdjustmentReason: appliedRecord.hr_adjustment_reason,
-            adjustedBy: appliedRecord.adjusted_by,
-            adjustedAt: appliedRecord.adjusted_at,
-            workingDurationMinutes: appliedRecord.working_duration_minutes,
-            checkinTime: appliedRecord.checkin_time,
-            effectiveCheckinTime: appliedRecord.effective_checkin_time,
-            checkoutTime: appliedRecord.checkout_time,
-            effectiveCheckoutTime: appliedRecord.effective_checkout_time,
-            createdAt: appliedRecord.created_at,
-            updatedAt: appliedRecord.updated_at,
+            id: updAtt.id,
+            profileId: updAtt.profile_id,
+            employeeName: updAtt.profiles?.full_name,
+            employeeId: updAtt.profiles?.employee_id,
+            departmentName: updAtt.profiles?.departments?.name,
+            designationTitle: updAtt.profiles?.designations?.title,
+            attendanceDate: updAtt.attendance_date,
+            status: updAtt.status,
+            isLate: updAtt.is_late,
+            isHrAdjusted: updAtt.is_hr_adjusted,
+            hrAdjustmentReason: updAtt.hr_adjustment_reason,
+            adjustedBy: updAtt.adjusted_by,
+            adjustedAt: updAtt.adjusted_at,
+            workingDurationMinutes: updAtt.working_duration_minutes,
+            checkinTime: updAtt.checkin_time,
+            effectiveCheckinTime: updAtt.effective_checkin_time,
+            checkinSelfieUrl: updAtt.checkin_selfie_url,
+            checkoutTime: updAtt.checkout_time,
+            effectiveCheckoutTime: updAtt.effective_checkout_time,
+            checkoutSelfieUrl: updAtt.checkout_selfie_url,
+            createdAt: updAtt.created_at,
+            updatedAt: updAtt.updated_at,
           };
         }
       }
     }
 
-    const formatted = {
-      id: updated.id,
-      attendanceId: updated.attendance_id,
-      profileId: updated.profile_id,
-      employeeName: updated.profiles?.full_name,
-      employeeId: updated.profiles?.employee_id,
-      correctionType: updated.correction_type,
-      originalCheckinTime: updated.original_checkin_time,
-      originalCheckoutTime: updated.original_checkout_time,
-      originalStatus: updated.original_status,
-      requestedCheckinTime: updated.requested_checkin_time,
-      requestedCheckoutTime: updated.requested_checkout_time,
-      requestedStatus: updated.requested_status,
-      reason: updated.reason,
-      status: updated.status,
-      reviewedBy: updated.reviewed_by,
-      reviewedByName: updated.reviewers?.full_name,
-      reviewedAt: updated.reviewed_at,
-      reviewRemarks: updated.review_remarks,
-      createdAt: updated.created_at,
+    const formattedCorr = {
+      id: updatedCorr.id,
+      attendanceId: updatedCorr.attendance_id,
+      profileId: updatedCorr.profile_id,
+      employeeName: updatedCorr.profiles?.full_name,
+      employeeId: updatedCorr.profiles?.employee_id,
+      correctionType: updatedCorr.correction_type,
+      originalCheckinTime: updatedCorr.original_checkin_time,
+      originalCheckoutTime: updatedCorr.original_checkout_time,
+      originalStatus: updatedCorr.original_status,
+      requestedCheckinTime: updatedCorr.requested_checkin_time,
+      requestedCheckoutTime: updatedCorr.requested_checkout_time,
+      requestedStatus: updatedCorr.requested_status,
+      reason: updatedCorr.reason,
+      status: updatedCorr.status,
+      reviewedBy: updatedCorr.reviewed_by,
+      reviewedByName: updatedCorr.reviewer?.full_name,
+      reviewedAt: updatedCorr.reviewed_at,
+      reviewRemarks: updatedCorr.review_remarks,
+      createdAt: updatedCorr.created_at,
     };
 
     return NextResponse.json({
       success: true,
-      correction: formatted,
+      correction: formattedCorr,
       updatedAttendanceRecord,
     });
   } catch (err: any) {

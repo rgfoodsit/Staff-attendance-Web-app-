@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   AlertTriangle,
   FileEdit,
-  RefreshCw
+  RefreshCw,
+  XCircle
 } from 'lucide-react';
 import { UserProfile, AttendanceRecord, AttendanceSettings, DailyWorkReport, AttendanceCorrection } from '@/types';
 import { formatTime, formatDate, formatDuration, getLocalDateString } from '@/lib/utils';
@@ -61,10 +62,7 @@ export function EmployeeView({
   const [selectedCorrectionRecord, setSelectedCorrectionRecord] = useState<AttendanceRecord | null>(null);
   const [reportText, setReportText] = useState(todayReport?.reportText || '');
   const [reportSaved, setReportSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'corrections' | 'profile'>('home');
-
-  const myCorrections = (corrections || []).filter((c) => c.profileId === currentUser.id);
-  const pendingMyCorrections = myCorrections.filter((c) => c.status === 'pending').length;
+  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'profile'>('home');
 
   const hasCheckedIn = !!todayRecord?.checkinTime && todayRecord?.status !== 'forgotten_checkout';
   const hasCheckedOut = !!todayRecord?.checkoutTime && todayRecord?.status !== 'forgotten_checkout';
@@ -333,88 +331,144 @@ export function EmployeeView({
               <span className="text-xs text-slate-500">{historyRecords.length} records</span>
             </div>
 
+            {/* My Applied Corrections Summary */}
+            {(() => {
+              const myCorrections = (corrections || []).filter((c) => c && c.profileId === currentUser.id);
+              if (myCorrections.length === 0) return null;
+              return (
+                <div className="bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 rounded-2xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-indigo-950 dark:text-indigo-200">
+                    <span className="flex items-center gap-1.5">
+                      <FileEdit className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                      My Applied Corrections ({myCorrections.length})
+                    </span>
+                    <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full font-bold">
+                      {myCorrections.filter((c) => c.status === 'pending').length} Pending Review
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {myCorrections.slice(0, 3).map((c) => (
+                      <div
+                        key={c.id}
+                        className="bg-white dark:bg-slate-900 rounded-xl p-2.5 text-[11px] border border-indigo-100 dark:border-slate-800 flex items-center justify-between gap-2"
+                      >
+                        <div className="truncate min-w-0">
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate">
+                            {c.reason}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            Type: {c.correctionType.replace(/_/g, ' ')}
+                            {c.reviewRemarks ? ` • Note: ${c.reviewRemarks}` : ''}
+                          </span>
+                        </div>
+                        <span
+                          className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            c.status === 'approved'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300/40'
+                              : c.status === 'rejected'
+                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-300/40'
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/40'
+                          }`}
+                        >
+                          {c.status === 'pending' ? 'Pending Review' : c.status.toUpperCase()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="space-y-2.5">
-              {historyRecords.map((r) => (
-                <div
-                  key={r.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-xs text-slate-900 dark:text-white">
-                      {formatDate(r.attendanceDate)}
-                    </span>
-                    {r.status === 'forgotten_checkout' || (!r.checkoutTime && r.attendanceDate < getLocalDateString()) ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800">
-                        <AlertTriangle className="w-3 h-3 text-amber-500" />
-                        Forgot to check-out
+              {historyRecords.map((r) => {
+                const appliedCorrection = (corrections || []).find((c) => c && c.attendanceId === r.id);
+                return (
+                  <div
+                    key={r.id}
+                    className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-slate-900 dark:text-white">
+                        {formatDate(r.attendanceDate)}
                       </span>
-                    ) : (
-                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {r.status.replace(/_/g, ' ')}
-                      </span>
-                    )}
-                  </div>
+                      {r.status === 'forgotten_checkout' || (!r.checkoutTime && r.attendanceDate < getLocalDateString()) ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800">
+                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                          Forgot to check-out
+                        </span>
+                      ) : (
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                          {r.status.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Check-in</span>
-                      <span className="font-medium text-slate-800 dark:text-slate-200">
-                        {formatTime(r.effectiveCheckinTime || r.checkinTime)}
-                      </span>
+                    <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">Check-in</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                          {formatTime(r.effectiveCheckinTime || r.checkinTime)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">Check-out</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                          {r.status === 'forgotten_checkout' || (!r.checkoutTime && r.attendanceDate < getLocalDateString()) ? (
+                            <span className="text-amber-500 font-semibold text-[10px]">Missed</span>
+                          ) : (
+                            formatTime(r.effectiveCheckoutTime || r.checkoutTime)
+                          )}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">Duration</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                          {r.status === 'forgotten_checkout' || (!r.checkoutTime && r.attendanceDate < getLocalDateString())
+                            ? '--'
+                            : formatDuration(r.workingDurationMinutes)}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Check-out</span>
-                      <span className="font-medium text-slate-800 dark:text-slate-200">
-                        {r.status === 'forgotten_checkout' || (!r.checkoutTime && r.attendanceDate < getLocalDateString()) ? (
-                          <span className="text-amber-500 font-semibold text-[10px]">Missed</span>
-                        ) : (
-                          formatTime(r.effectiveCheckoutTime || r.checkoutTime)
-                        )}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Duration</span>
-                      <span className="font-medium text-slate-800 dark:text-slate-200">
-                        {r.status === 'forgotten_checkout' || (!r.checkoutTime && r.attendanceDate < getLocalDateString())
-                          ? '--'
-                          : formatDuration(r.workingDurationMinutes)}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Correction Action & Status */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400">
-                      {r.isLate ? 'Marked Late' : 'On-Time'}
-                    </span>
-                    {(() => {
-                      const existingCorr = myCorrections.find((c) => c.attendanceId === r.id);
-                      if (existingCorr) {
-                        return (
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                                existingCorr.status === 'approved'
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                  : existingCorr.status === 'rejected'
-                                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                              }`}
-                            >
-                              Correction {existingCorr.status === 'pending' ? 'Pending' : existingCorr.status}
+                    {/* Correction Action / Applied Status */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                      <span className="text-[10px] text-slate-400">
+                        {r.isLate ? 'Marked Late' : 'On-Time'}
+                      </span>
+                      {appliedCorrection ? (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {appliedCorrection.status === 'pending' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/40">
+                              <Clock className="w-3 h-3 text-amber-500 animate-pulse" />
+                              Correction: Pending Review
                             </span>
-                            {existingCorr.status === 'rejected' && (
+                          )}
+                          {appliedCorrection.status === 'approved' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300/40">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                              Correction: Approved
+                            </span>
+                          )}
+                          {appliedCorrection.status === 'rejected' && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                title={appliedCorrection.reviewRemarks ? `HR Remarks: ${appliedCorrection.reviewRemarks}` : 'Request was rejected'}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-300/40"
+                              >
+                                <XCircle className="w-3 h-3 text-rose-500" />
+                                Rejected {appliedCorrection.reviewRemarks ? `(${appliedCorrection.reviewRemarks})` : ''}
+                              </span>
                               <button
                                 onClick={() => setSelectedCorrectionRecord(r)}
-                                className="text-xs text-indigo-400 hover:underline font-semibold"
+                                className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
                               >
+                                <FileEdit className="w-3 h-3" />
                                 Re-apply
                               </button>
-                            )}
-                          </div>
-                        );
-                      }
-                      return (
+                            </div>
+                          )}
+                        </div>
+                      ) : (
                         <button
                           onClick={() => setSelectedCorrectionRecord(r)}
                           className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
@@ -422,118 +476,16 @@ export function EmployeeView({
                           <FileEdit className="w-3.5 h-3.5" />
                           <span>Request Correction</span>
                         </button>
-                      );
-                    })()}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tab 3: Applied Corrections */}
-        {activeTab === 'corrections' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-base">My Correction Requests</h3>
-                <p className="text-xs text-slate-400">Track review progress and notes from HR</p>
-              </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300">
-                {myCorrections.length} Total
-              </span>
-            </div>
-
-            {myCorrections.length === 0 ? (
-              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center text-xs text-slate-400 space-y-2">
-                <FileEdit className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="font-semibold text-slate-300">No Correction Requests Submitted</p>
-                <p>If you forgot to check out or need a check-in time adjusted, tap "History" and choose "Request Correction" on any day's record.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {myCorrections.map((c) => {
-                  const linkedRecord = historyRecords.find((r) => r.id === c.attendanceId);
-                  return (
-                    <div
-                      key={c.id}
-                      className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-xs"
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white">
-                            {linkedRecord ? formatDate(linkedRecord.attendanceDate) : 'Attendance Record'}
-                          </span>
-                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
-                            {c.correctionType.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                        <span
-                          className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                            c.status === 'approved'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                              : c.status === 'rejected'
-                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                              : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                          }`}
-                        >
-                          {c.status === 'pending' ? 'Pending Review' : c.status}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-                        <div>
-                          <span className="text-[10px] text-slate-500 block">Original</span>
-                          <span className="text-slate-300 font-medium">
-                            {formatTime(c.originalCheckinTime)} &rarr; {formatTime(c.originalCheckoutTime)}
-                            {c.originalStatus && ` (${c.originalStatus})`}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-slate-500 block">Requested</span>
-                          <span className="text-indigo-400 font-medium">
-                            {c.requestedCheckinTime && `In: ${formatTime(c.requestedCheckinTime)} `}
-                            {c.requestedCheckoutTime && `Out: ${formatTime(c.requestedCheckoutTime)} `}
-                            {c.requestedStatus && `Status: ${c.requestedStatus.toUpperCase()}`}
-                          </span>
-                        </div>
-                        <div className="col-span-2 pt-1 border-t border-slate-800/60">
-                          <span className="text-slate-500 block text-[10px]">Your Reason:</span>
-                          <span className="text-slate-200 italic">"{c.reason}"</span>
-                        </div>
-                      </div>
-
-                      {c.status !== 'pending' && (
-                        <div
-                          className={`p-2.5 rounded-xl text-xs space-y-1 ${
-                            c.status === 'approved'
-                              ? 'bg-emerald-950/30 border border-emerald-900/40 text-emerald-300'
-                              : 'bg-rose-950/30 border border-rose-900/40 text-rose-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between font-semibold text-[11px]">
-                            <span>
-                              {c.status === 'approved' ? '✓ Approved by HR' : '✕ Rejected by HR'}
-                              {c.reviewedByName ? ` (${c.reviewedByName})` : ''}
-                            </span>
-                            {c.reviewedAt && (
-                              <span className="text-[10px] opacity-75">{formatDate(c.reviewedAt.split('T')[0])}</span>
-                            )}
-                          </div>
-                          {c.reviewRemarks && (
-                            <p className="text-[11px] opacity-90">Remarks: {c.reviewRemarks}</p>
-                          )}
-                        </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* Tab 4: Basic Profile */}
+        {/* Tab 3: Basic Profile */}
         {activeTab === 'profile' && (
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -583,7 +535,7 @@ export function EmployeeView({
 
       {/* Mobile Bottom Navigation Bar (Fixed) */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-slate-900/90 backdrop-blur-xl border-t border-slate-800/80 z-30 shadow-2xl">
-        <div className="grid grid-cols-4 py-1">
+        <div className="grid grid-cols-3 py-1">
           <button
             onClick={() => setActiveTab('home')}
             className={`py-2 flex flex-col items-center gap-1 transition ${
@@ -605,20 +557,6 @@ export function EmployeeView({
           >
             <History className="w-5 h-5" />
             <span className="text-[10px]">History</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('corrections')}
-            className={`py-2 flex flex-col items-center gap-1 transition relative ${
-              activeTab === 'corrections'
-                ? 'text-red-500 font-bold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <FileEdit className="w-5 h-5" />
-            <span className="text-[10px]">Corrections</span>
-            {pendingMyCorrections > 0 && (
-              <span className="absolute top-1.5 right-4 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-slate-950" />
-            )}
           </button>
           <button
             onClick={() => setActiveTab('profile')}

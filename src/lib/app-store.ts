@@ -594,17 +594,16 @@ export class AppStore {
     this.setItem(STORAGE_KEYS.CORRECTIONS, clean);
   }
 
-  static submitCorrection(correction: Omit<AttendanceCorrection, 'id' | 'status' | 'createdAt'> & { id?: string }): AttendanceCorrection {
+  static submitCorrection(correction: Omit<AttendanceCorrection, 'id' | 'status' | 'createdAt'>): AttendanceCorrection {
     const corrections = this.getCorrections();
     const newCorr: AttendanceCorrection = {
       ...correction,
-      id: correction.id || `corr-${Date.now()}`,
+      id: `corr-${Date.now()}`,
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
-    const filtered = corrections.filter((c) => c.id !== newCorr.id);
-    filtered.unshift(newCorr);
-    this.setItem(STORAGE_KEYS.CORRECTIONS, filtered);
+    corrections.unshift(newCorr);
+    this.setItem(STORAGE_KEYS.CORRECTIONS, corrections);
     return newCorr;
   }
 
