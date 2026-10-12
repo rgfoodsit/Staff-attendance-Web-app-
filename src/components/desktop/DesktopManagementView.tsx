@@ -4,7 +4,6 @@ import React, { useState, useMemo } from 'react';
 import {
   Users,
   UserCheck,
-  UserX,
   Clock,
   Calendar,
   AlertCircle,
@@ -199,7 +198,6 @@ export function DesktopManagementView({
   const todayRecords = attendanceRecords.filter((r) => r.attendanceDate === todayStr && !nonStaffIds.has(r.profileId));
   const presentToday = todayRecords.filter((r) => ['present', 'checked_in', 'checked_out'].includes(r.status) && !r.isLate).length;
   const lateToday = todayRecords.filter((r) => r.isLate).length;
-  const absentToday = todayRecords.filter((r) => r.status === 'absent').length;
   const onLeaveToday = todayRecords.filter((r) => ['leave', 'half_day_leave'].includes(r.status)).length;
   const totalCorrectionsCount = (corrections || []).length;
   const pendingCorrectionsCount = (corrections || []).filter((c) => c && c.status?.toLowerCase() === 'pending').length;
