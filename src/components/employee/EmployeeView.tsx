@@ -66,11 +66,48 @@ export function EmployeeView({
   const [selectedCorrectionRecord, setSelectedCorrectionRecord] = useState<AttendanceRecord | null>(null);
   const [reportText, setReportText] = useState(todayReport?.reportText || '');
   const [reportSaved, setReportSaved] = useState(false);
-  const [internalTab, setInternalTab] = useState<'home' | 'history' | 'profile'>('home');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const [internalTab, setInternalTab] = useState<'home' | 'history' | 'profile'>(() => {
+    if (typeof window !== 'undefined') {
+      const urlTab = new URLSearchParams(window.location.search).get('tab');
+      if (urlTab === 'history' || urlTab === 'profile' || urlTab === 'home') {
+        return urlTab as 'home' | 'history' | 'profile';
+      }
+      const saved = localStorage.getItem('staff_app_employee_tab');
+      if (saved === 'history' || saved === 'profile' || saved === 'home') {
+        return saved as 'home' | 'history' | 'profile';
+      }
+    }
+    return propActiveTab || 'home';
+  });
 
   const activeTab = propActiveTab !== undefined ? propActiveTab : internalTab;
+
+  React.useEffect(() => {
+    if (propActiveTab) {
+      setInternalTab(propActiveTab);
+    }
+  }, [propActiveTab]);
+
+  React.useEffect(() => {
+    if (todayReport?.reportText !== undefined) {
+      setReportText(todayReport.reportText);
+    }
+  }, [todayReport?.reportText]);
+
   const setActiveTab = (tab: 'home' | 'history' | 'profile') => {
     setInternalTab(tab);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('staff_app_employee_tab', tab);
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('tab') !== tab) {
+          url.searchParams.set('tab', tab);
+          window.history.replaceState(null, '', url.toString());
+        }
+      } catch {}
+    }
     onTabChange?.(tab);
   };
 
@@ -209,12 +246,19 @@ export function EmployeeView({
                   {onRefresh && (
                     <button
                       type="button"
-                      onClick={onRefresh}
+                      onClick={async () => {
+                        setIsRefreshing(true);
+                        try {
+                          await onRefresh();
+                        } finally {
+                          setTimeout(() => setIsRefreshing(false), 500);
+                        }
+                      }}
                       className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition"
                       title="Refresh for Today"
                       aria-label="Refresh for Today"
                     >
-                      <RefreshCw className="w-3 h-3" />
+                      <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
                     </button>
                   )}
                 </div>

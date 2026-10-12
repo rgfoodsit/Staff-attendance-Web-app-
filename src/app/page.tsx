@@ -34,8 +34,32 @@ export default function Home() {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [settings, setSettings] = useState<AttendanceSettings>(AppStore.getSettings());
   const [isMobilePreview, setIsMobilePreview] = useState(false);
-  const [desktopActiveTab, setDesktopActiveTab] = useState<'dashboard' | 'employees' | 'corrections' | 'reports' | 'masters' | 'audit' | 'settings' | 'profile'>('dashboard');
-  const [employeeActiveTab, setEmployeeActiveTab] = useState<'home' | 'history' | 'profile'>('home');
+  const [desktopActiveTab, setDesktopActiveTab] = useState<'dashboard' | 'employees' | 'corrections' | 'reports' | 'masters' | 'audit' | 'settings' | 'profile'>(() => {
+    if (typeof window !== 'undefined') {
+      const urlTab = new URLSearchParams(window.location.search).get('tab');
+      if (urlTab && (['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as string[]).includes(urlTab)) {
+        return urlTab as any;
+      }
+      const saved = localStorage.getItem('staff_app_desktop_tab');
+      if (saved && (['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as string[]).includes(saved)) {
+        return saved as any;
+      }
+    }
+    return 'dashboard';
+  });
+  const [employeeActiveTab, setEmployeeActiveTab] = useState<'home' | 'history' | 'profile'>(() => {
+    if (typeof window !== 'undefined') {
+      const urlTab = new URLSearchParams(window.location.search).get('tab');
+      if (urlTab && ['home', 'history', 'profile'].includes(urlTab)) {
+        return urlTab as 'home' | 'history' | 'profile';
+      }
+      const saved = localStorage.getItem('staff_app_employee_tab');
+      if (saved && ['home', 'history', 'profile'].includes(saved)) {
+        return saved as 'home' | 'history' | 'profile';
+      }
+    }
+    return 'home';
+  });
   const [mounted, setMounted] = useState(false);
   const [currentDateStr, setCurrentDateStr] = useState<string>(getLocalDateString());
 
@@ -648,9 +672,9 @@ export default function Home() {
               onMarkLeave={handleMarkLeave}
               onSaveWorkReport={handleSaveWorkReport}
               onSubmitCorrection={handleSubmitCorrection}
-              onRefresh={() => {
+              onRefresh={async () => {
                 setCurrentDateStr(getLocalDateString());
-                syncSupabase();
+                await syncSupabase();
                 refreshState();
               }}
               onLogout={handleLogout}
