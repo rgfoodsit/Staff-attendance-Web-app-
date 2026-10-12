@@ -199,7 +199,8 @@ export function DesktopManagementView({
   const todayRecords = attendanceRecords.filter((r) => r.attendanceDate === todayStr && !nonStaffIds.has(r.profileId));
   const presentToday = todayRecords.filter((r) => ['present', 'checked_in', 'checked_out'].includes(r.status) && !r.isLate).length;
   const lateToday = todayRecords.filter((r) => r.isLate).length;
-  const absentToday = todayRecords.filter((r) => r.status === 'absent' || ['leave', 'half_day_leave'].includes(r.status)).length;
+  const absentToday = todayRecords.filter((r) => r.status === 'absent').length;
+  const onLeaveToday = todayRecords.filter((r) => ['leave', 'half_day_leave'].includes(r.status)).length;
   const pendingCorrectionsCount = corrections.filter((c) => c.status === 'pending').length;
 
   const handleExportExcel = async () => {
@@ -461,10 +462,10 @@ export function DesktopManagementView({
 
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
               <div className="flex items-center justify-between text-slate-500 mb-2">
-                <span className="text-[11px] font-semibold uppercase">Absent</span>
-                <UserX className="w-4 h-4 text-rose-500" />
+                <span className="text-[11px] font-semibold uppercase">Leave</span>
+                <Calendar className="w-4 h-4 text-purple-500" />
               </div>
-              <span className="text-2xl font-bold text-rose-600 dark:text-rose-400">{absentToday}</span>
+              <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{onLeaveToday}</span>
             </div>
 
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
