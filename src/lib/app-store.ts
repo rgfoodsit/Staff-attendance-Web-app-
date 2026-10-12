@@ -12,17 +12,26 @@ import {
   AuditLogEntry,
   UserRole,
 } from '@/types';
-import {
-  INITIAL_PROFILES,
-  INITIAL_DEPARTMENTS,
-  INITIAL_DESIGNATIONS,
-  INITIAL_SETTINGS,
-  INITIAL_ATTENDANCE,
-  INITIAL_CORRECTIONS,
-  INITIAL_DAILY_REPORTS,
-  INITIAL_AUDIT_LOGS,
-} from './mock-data';
 import { getLocalDateString } from './utils';
+
+const DEFAULT_DEPARTMENTS: Department[] = [
+  { id: 'd0000000-0000-0000-0000-000000000001', name: 'General', code: 'GEN', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
+];
+
+const DEFAULT_DESIGNATIONS: Designation[] = [
+  { id: 'e0000000-0000-0000-0000-000000000001', title: 'Staff', isActive: true, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
+];
+
+const DEFAULT_SETTINGS: AttendanceSettings = {
+  id: 1,
+  officialCheckinTime: '09:00:00',
+  lateThresholdMinutes: 15,
+  checkoutReminderTime: '19:00:00',
+  checkoutReminderEnabled: true,
+  notifyEmployeeOnHrAdjustment: true,
+  updatedBy: undefined,
+  updatedAt: '2026-10-01T09:00:00Z',
+};
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'staff_app_current_user',
@@ -140,8 +149,8 @@ export class AppStore {
 
   // Masters
   static getDepartments(): Department[] {
-    const raw = this.getItem<Department[]>(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
-    if (!Array.isArray(raw)) return INITIAL_DEPARTMENTS;
+    const raw = this.getItem<Department[]>(STORAGE_KEYS.DEPARTMENTS, DEFAULT_DEPARTMENTS);
+    if (!Array.isArray(raw)) return DEFAULT_DEPARTMENTS;
     return raw.filter((d): d is Department => Boolean(d && typeof d === 'object' && d.id));
   }
 
@@ -152,8 +161,8 @@ export class AppStore {
   }
 
   static getDesignations(): Designation[] {
-    const raw = this.getItem<Designation[]>(STORAGE_KEYS.DESIGNATIONS, INITIAL_DESIGNATIONS);
-    if (!Array.isArray(raw)) return INITIAL_DESIGNATIONS;
+    const raw = this.getItem<Designation[]>(STORAGE_KEYS.DESIGNATIONS, DEFAULT_DESIGNATIONS);
+    if (!Array.isArray(raw)) return DEFAULT_DESIGNATIONS;
     return raw.filter((d): d is Designation => Boolean(d && typeof d === 'object' && d.id));
   }
 
@@ -164,8 +173,8 @@ export class AppStore {
   }
 
   static getProfiles(): UserProfile[] {
-    const raw = this.getItem<UserProfile[]>(STORAGE_KEYS.PROFILES, INITIAL_PROFILES);
-    if (!Array.isArray(raw)) return INITIAL_PROFILES;
+    const raw = this.getItem<UserProfile[]>(STORAGE_KEYS.PROFILES, []);
+    if (!Array.isArray(raw)) return [];
     const valid = raw.filter(
       (p): p is UserProfile => Boolean(p && typeof p === 'object' && p.id && p.role && ['employee', 'hr', 'admin'].includes(p.role))
     );
@@ -173,7 +182,7 @@ export class AppStore {
     if (valid.length !== raw.length) {
       this.setItem(STORAGE_KEYS.PROFILES, valid);
     }
-    return valid.length > 0 ? valid : INITIAL_PROFILES;
+    return valid;
   }
 
   static saveProfiles(profiles: UserProfile[]): void {
@@ -186,7 +195,7 @@ export class AppStore {
 
   // Settings
   static getSettings(): AttendanceSettings {
-    return this.getItem<AttendanceSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
+    return this.getItem<AttendanceSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
   }
 
   static updateSettings(settings: Partial<AttendanceSettings>, performedBy: UserProfile): AttendanceSettings {
@@ -210,10 +219,10 @@ export class AppStore {
 
   // Attendance Records
   static getAttendanceRecords(): AttendanceRecord[] {
-    const raw = this.getItem<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
+    const raw = this.getItem<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, []);
     const records = Array.isArray(raw)
       ? raw.filter((r): r is AttendanceRecord => Boolean(r && typeof r === 'object' && r.id))
-      : INITIAL_ATTENDANCE;
+      : [];
     const today = getLocalDateString();
     let hasChanges = false;
 
@@ -538,8 +547,8 @@ export class AppStore {
 
   // Daily Work Reports
   static getDailyReports(): DailyWorkReport[] {
-    const raw = this.getItem<DailyWorkReport[]>(STORAGE_KEYS.DAILY_REPORTS, INITIAL_DAILY_REPORTS);
-    if (!Array.isArray(raw)) return INITIAL_DAILY_REPORTS;
+    const raw = this.getItem<DailyWorkReport[]>(STORAGE_KEYS.DAILY_REPORTS, []);
+    if (!Array.isArray(raw)) return [];
     return raw.filter((r): r is DailyWorkReport => Boolean(r && typeof r === 'object' && r.id));
   }
 
@@ -583,8 +592,8 @@ export class AppStore {
 
   // Corrections
   static getCorrections(): AttendanceCorrection[] {
-    const raw = this.getItem<AttendanceCorrection[]>(STORAGE_KEYS.CORRECTIONS, INITIAL_CORRECTIONS);
-    if (!Array.isArray(raw)) return INITIAL_CORRECTIONS;
+    const raw = this.getItem<AttendanceCorrection[]>(STORAGE_KEYS.CORRECTIONS, []);
+    if (!Array.isArray(raw)) return [];
     return raw.filter((c): c is AttendanceCorrection => Boolean(c && typeof c === 'object' && c.id));
   }
 
@@ -665,17 +674,7 @@ export class AppStore {
 
   // Notifications
   static getNotifications(profileId?: string): InAppNotification[] {
-    const raw = this.getItem<InAppNotification[]>(STORAGE_KEYS.NOTIFICATIONS, [
-      {
-        id: 'notif-1',
-        recipientId: 'user-emp-1',
-        title: 'Check-in Recorded',
-        message: 'You checked in on time at 09:08 AM.',
-        notificationType: 'attendance_success',
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    const raw = this.getItem<InAppNotification[]>(STORAGE_KEYS.NOTIFICATIONS, []);
     const list = Array.isArray(raw)
       ? raw.filter((n): n is InAppNotification => Boolean(n && typeof n === 'object' && n.id))
       : [];
@@ -703,8 +702,8 @@ export class AppStore {
 
   // Audit Logs
   static getAuditLogs(): AuditLogEntry[] {
-    const raw = this.getItem<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS);
-    if (!Array.isArray(raw)) return INITIAL_AUDIT_LOGS;
+    const raw = this.getItem<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, []);
+    if (!Array.isArray(raw)) return [];
     return raw.filter((l): l is AuditLogEntry => Boolean(l && typeof l === 'object' && l.id));
   }
 
