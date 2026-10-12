@@ -141,6 +141,16 @@ export default function Home() {
           AppStore.saveAttendanceRecords(attData.records);
         }
       }
+
+      // Sync Real Attendance Corrections
+      const corrRes = await fetch('/api/attendance/corrections');
+      if (corrRes.ok) {
+        const corrData = await corrRes.json();
+        if (corrData.corrections && Array.isArray(corrData.corrections)) {
+          setCorrections(corrData.corrections);
+          AppStore.saveCorrections(corrData.corrections);
+        }
+      }
     } catch (err) {
       console.warn('Supabase live sync notice:', err);
     }
@@ -337,9 +347,9 @@ export default function Home() {
     refreshState();
   };
 
-  const handleSubmitCorrection = (data: any) => {
+  const handleSubmitCorrection = async (data: any) => {
     const record = attendanceRecords.find((r) => r.id === data.attendanceId);
-    AppStore.submitCorrection({
+    const localCorr = AppStore.submitCorrection({
       attendanceId: data.attendanceId,
       profileId: currentUser.id,
       employeeName: currentUser.fullName,
@@ -354,10 +364,40 @@ export default function Home() {
       reason: data.reason,
     });
     refreshState();
-    alert('Correction request submitted for management review.');
+
+    try {
+      const res = await fetch('/api/attendance/corrections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attendanceId: data.attendanceId,
+          profileId: currentUser.id,
+          correctionType: data.correctionType,
+          originalCheckinTime: record?.effectiveCheckinTime || record?.checkinTime,
+          originalCheckoutTime: record?.effectiveCheckoutTime || record?.checkoutTime,
+          originalStatus: record?.status,
+          requestedCheckinTime: data.requestedCheckinTime,
+          requestedCheckoutTime: data.requestedCheckoutTime,
+          requestedStatus: data.requestedStatus,
+          reason: data.reason,
+        }),
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.correction) {
+        const allCorrs = AppStore.getCorrections();
+        const updated = allCorrs.map((c) => (c.id === localCorr.id ? resData.correction : c));
+        AppStore.saveCorrections(updated);
+        refreshState();
+      }
+    } catch (err) {
+      console.warn('Backend correction submit sync:', err);
+    }
+
+    alert('Correction request submitted successfully for management review.');
   };
 
-  const handleReviewCorrection = (correctionId: string, status: 'approved' | 'rejected', remarks?: string) => {
+  const handleReviewCorrection = async (correctionId: string, status: 'approved' | 'rejected', remarks?: string) => {
     AppStore.reviewCorrection({
       correctionId,
       reviewer: currentUser,
@@ -365,6 +405,42 @@ export default function Home() {
       remarks,
     });
     refreshState();
+
+    try {
+      const res = await fetch('/api/attendance/corrections', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          correctionId,
+          status,
+          reviewRemarks: remarks,
+          reviewerId: currentUser.id,
+        }),
+      });
+
+      const resData = await res.json();
+      if (res.ok) {
+        if (resData.updatedAttendanceRecord) {
+          const recs = AppStore.getAttendanceRecords();
+          const idx = recs.findIndex((r) => r.id === resData.updatedAttendanceRecord.id);
+          if (idx >= 0) {
+            recs[idx] = resData.updatedAttendanceRecord;
+            AppStore.saveAttendanceRecords(recs);
+          }
+        }
+        const corrRes = await fetch('/api/attendance/corrections');
+        if (corrRes.ok) {
+          const corrData = await corrRes.json();
+          if (corrData.corrections) {
+            setCorrections(corrData.corrections);
+            AppStore.saveCorrections(corrData.corrections);
+          }
+        }
+        refreshState();
+      }
+    } catch (err) {
+      console.warn('Backend correction review sync:', err);
+    }
   };
 
   const handleHrAdjust = (data: any) => {
@@ -434,6 +510,7 @@ export default function Home() {
               historyRecords={employeeHistory}
               todayReport={todayReport}
               settings={settings}
+              corrections={corrections}
               onCheckIn={handleCheckIn}
               onCheckOut={handleCheckOut}
               onMarkLeave={handleMarkLeave}

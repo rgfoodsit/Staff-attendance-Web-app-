@@ -19,7 +19,7 @@ import {
   FileEdit,
   RefreshCw
 } from 'lucide-react';
-import { UserProfile, AttendanceRecord, AttendanceSettings, DailyWorkReport } from '@/types';
+import { UserProfile, AttendanceRecord, AttendanceSettings, DailyWorkReport, AttendanceCorrection } from '@/types';
 import { formatTime, formatDate, formatDuration, getLocalDateString } from '@/lib/utils';
 import { LiveAttendanceModal } from './LiveAttendanceModal';
 import { LeaveModal } from './LeaveModal';
@@ -31,6 +31,7 @@ interface EmployeeViewProps {
   historyRecords: AttendanceRecord[];
   todayReport?: DailyWorkReport;
   settings: AttendanceSettings;
+  corrections?: AttendanceCorrection[];
   onCheckIn: (data: { selfieUrl: string; latitude: number; longitude: number; locationName: string }) => void;
   onCheckOut: (data: { selfieUrl: string; latitude: number; longitude: number; locationName: string }) => void;
   onMarkLeave: (data: { isHalfDay: boolean; halfType?: 'first_half' | 'second_half'; reason: string; comment?: string }) => void;
@@ -46,6 +47,7 @@ export function EmployeeView({
   historyRecords,
   todayReport,
   settings,
+  corrections = [],
   onCheckIn,
   onCheckOut,
   onMarkLeave,
@@ -59,7 +61,10 @@ export function EmployeeView({
   const [selectedCorrectionRecord, setSelectedCorrectionRecord] = useState<AttendanceRecord | null>(null);
   const [reportText, setReportText] = useState(todayReport?.reportText || '');
   const [reportSaved, setReportSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'profile'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'corrections' | 'profile'>('home');
+
+  const myCorrections = (corrections || []).filter((c) => c.profileId === currentUser.id);
+  const pendingMyCorrections = myCorrections.filter((c) => c.status === 'pending').length;
 
   const hasCheckedIn = !!todayRecord?.checkinTime && todayRecord?.status !== 'forgotten_checkout';
   const hasCheckedOut = !!todayRecord?.checkoutTime && todayRecord?.status !== 'forgotten_checkout';
@@ -377,18 +382,48 @@ export function EmployeeView({
                     </div>
                   </div>
 
-                  {/* Correction Action */}
+                  {/* Correction Action & Status */}
                   <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <span className="text-[10px] text-slate-400">
                       {r.isLate ? 'Marked Late' : 'On-Time'}
                     </span>
-                    <button
-                      onClick={() => setSelectedCorrectionRecord(r)}
-                      className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
-                    >
-                      <FileEdit className="w-3.5 h-3.5" />
-                      <span>Request Correction</span>
-                    </button>
+                    {(() => {
+                      const existingCorr = myCorrections.find((c) => c.attendanceId === r.id);
+                      if (existingCorr) {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                existingCorr.status === 'approved'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                  : existingCorr.status === 'rejected'
+                                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                              }`}
+                            >
+                              Correction {existingCorr.status === 'pending' ? 'Pending' : existingCorr.status}
+                            </span>
+                            {existingCorr.status === 'rejected' && (
+                              <button
+                                onClick={() => setSelectedCorrectionRecord(r)}
+                                className="text-xs text-indigo-400 hover:underline font-semibold"
+                              >
+                                Re-apply
+                              </button>
+                            )}
+                          </div>
+                        );
+                      }
+                      return (
+                        <button
+                          onClick={() => setSelectedCorrectionRecord(r)}
+                          className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
+                        >
+                          <FileEdit className="w-3.5 h-3.5" />
+                          <span>Request Correction</span>
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -396,7 +431,109 @@ export function EmployeeView({
           </div>
         )}
 
-        {/* Tab 3: Basic Profile */}
+        {/* Tab 3: Applied Corrections */}
+        {activeTab === 'corrections' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">My Correction Requests</h3>
+                <p className="text-xs text-slate-400">Track review progress and notes from HR</p>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300">
+                {myCorrections.length} Total
+              </span>
+            </div>
+
+            {myCorrections.length === 0 ? (
+              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center text-xs text-slate-400 space-y-2">
+                <FileEdit className="w-8 h-8 text-slate-600 mx-auto" />
+                <p className="font-semibold text-slate-300">No Correction Requests Submitted</p>
+                <p>If you forgot to check out or need a check-in time adjusted, tap "History" and choose "Request Correction" on any day's record.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myCorrections.map((c) => {
+                  const linkedRecord = historyRecords.find((r) => r.id === c.attendanceId);
+                  return (
+                    <div
+                      key={c.id}
+                      className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-xs"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">
+                            {linkedRecord ? formatDate(linkedRecord.attendanceDate) : 'Attendance Record'}
+                          </span>
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
+                            {c.correctionType.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
+                            c.status === 'approved'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                              : c.status === 'rejected'
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                              : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                          }`}
+                        >
+                          {c.status === 'pending' ? 'Pending Review' : c.status}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                        <div>
+                          <span className="text-[10px] text-slate-500 block">Original</span>
+                          <span className="text-slate-300 font-medium">
+                            {formatTime(c.originalCheckinTime)} &rarr; {formatTime(c.originalCheckoutTime)}
+                            {c.originalStatus && ` (${c.originalStatus})`}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 block">Requested</span>
+                          <span className="text-indigo-400 font-medium">
+                            {c.requestedCheckinTime && `In: ${formatTime(c.requestedCheckinTime)} `}
+                            {c.requestedCheckoutTime && `Out: ${formatTime(c.requestedCheckoutTime)} `}
+                            {c.requestedStatus && `Status: ${c.requestedStatus.toUpperCase()}`}
+                          </span>
+                        </div>
+                        <div className="col-span-2 pt-1 border-t border-slate-800/60">
+                          <span className="text-slate-500 block text-[10px]">Your Reason:</span>
+                          <span className="text-slate-200 italic">"{c.reason}"</span>
+                        </div>
+                      </div>
+
+                      {c.status !== 'pending' && (
+                        <div
+                          className={`p-2.5 rounded-xl text-xs space-y-1 ${
+                            c.status === 'approved'
+                              ? 'bg-emerald-950/30 border border-emerald-900/40 text-emerald-300'
+                              : 'bg-rose-950/30 border border-rose-900/40 text-rose-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between font-semibold text-[11px]">
+                            <span>
+                              {c.status === 'approved' ? '✓ Approved by HR' : '✕ Rejected by HR'}
+                              {c.reviewedByName ? ` (${c.reviewedByName})` : ''}
+                            </span>
+                            {c.reviewedAt && (
+                              <span className="text-[10px] opacity-75">{formatDate(c.reviewedAt.split('T')[0])}</span>
+                            )}
+                          </div>
+                          {c.reviewRemarks && (
+                            <p className="text-[11px] opacity-90">Remarks: {c.reviewRemarks}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 4: Basic Profile */}
         {activeTab === 'profile' && (
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -446,7 +583,7 @@ export function EmployeeView({
 
       {/* Mobile Bottom Navigation Bar (Fixed) */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-slate-900/90 backdrop-blur-xl border-t border-slate-800/80 z-30 shadow-2xl">
-        <div className="grid grid-cols-3 py-1">
+        <div className="grid grid-cols-4 py-1">
           <button
             onClick={() => setActiveTab('home')}
             className={`py-2 flex flex-col items-center gap-1 transition ${
@@ -468,6 +605,20 @@ export function EmployeeView({
           >
             <History className="w-5 h-5" />
             <span className="text-[10px]">History</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('corrections')}
+            className={`py-2 flex flex-col items-center gap-1 transition relative ${
+              activeTab === 'corrections'
+                ? 'text-red-500 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <FileEdit className="w-5 h-5" />
+            <span className="text-[10px]">Corrections</span>
+            {pendingMyCorrections > 0 && (
+              <span className="absolute top-1.5 right-4 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-slate-950" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab('profile')}

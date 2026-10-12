@@ -588,16 +588,23 @@ export class AppStore {
     return raw.filter((c): c is AttendanceCorrection => Boolean(c && typeof c === 'object' && c.id));
   }
 
-  static submitCorrection(correction: Omit<AttendanceCorrection, 'id' | 'status' | 'createdAt'>): AttendanceCorrection {
+  static saveCorrections(corrections: AttendanceCorrection[]): void {
+    if (!Array.isArray(corrections)) return;
+    const clean = corrections.filter((c): c is AttendanceCorrection => Boolean(c && typeof c === 'object' && c.id));
+    this.setItem(STORAGE_KEYS.CORRECTIONS, clean);
+  }
+
+  static submitCorrection(correction: Omit<AttendanceCorrection, 'id' | 'status' | 'createdAt'> & { id?: string }): AttendanceCorrection {
     const corrections = this.getCorrections();
     const newCorr: AttendanceCorrection = {
       ...correction,
-      id: `corr-${Date.now()}`,
+      id: correction.id || `corr-${Date.now()}`,
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
-    corrections.unshift(newCorr);
-    this.setItem(STORAGE_KEYS.CORRECTIONS, corrections);
+    const filtered = corrections.filter((c) => c.id !== newCorr.id);
+    filtered.unshift(newCorr);
+    this.setItem(STORAGE_KEYS.CORRECTIONS, filtered);
     return newCorr;
   }
 
