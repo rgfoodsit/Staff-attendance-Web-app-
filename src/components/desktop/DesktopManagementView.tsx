@@ -201,7 +201,8 @@ export function DesktopManagementView({
   const lateToday = todayRecords.filter((r) => r.isLate).length;
   const absentToday = todayRecords.filter((r) => r.status === 'absent').length;
   const onLeaveToday = todayRecords.filter((r) => ['leave', 'half_day_leave'].includes(r.status)).length;
-  const pendingCorrectionsCount = corrections.filter((c) => c.status === 'pending').length;
+  const totalCorrectionsCount = (corrections || []).length;
+  const pendingCorrectionsCount = (corrections || []).filter((c) => c && c.status?.toLowerCase() === 'pending').length;
 
   const handleExportExcel = async () => {
     try {
@@ -473,7 +474,20 @@ export function DesktopManagementView({
                 <span className="text-[11px] font-semibold uppercase">Corrections</span>
                 <AlertCircle className="w-4 h-4 text-indigo-500" />
               </div>
-              <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{pendingCorrectionsCount}</span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                  {totalCorrectionsCount}
+                </span>
+                {pendingCorrectionsCount > 0 ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                    {pendingCorrectionsCount} Pending
+                  </span>
+                ) : totalCorrectionsCount > 0 ? (
+                  <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                    Reviewed
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -749,6 +763,11 @@ export function DesktopManagementView({
               <p className="text-xs text-slate-500">
                 HR and Administrators can review and approve attendance correction requests.
               </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                {totalCorrectionsCount} Total {pendingCorrectionsCount > 0 ? `(${pendingCorrectionsCount} Pending)` : ''}
+              </span>
             </div>
           </div>
 

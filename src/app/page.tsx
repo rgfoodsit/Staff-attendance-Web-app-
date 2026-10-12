@@ -24,15 +24,15 @@ import { getLocalDateString } from '@/lib/utils';
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<UserProfile>(AppStore.getCurrentUser());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [profiles, setProfiles] = useState<UserProfile[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [designations, setDesignations] = useState<Designation[]>([]);
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [corrections, setCorrections] = useState<AttendanceCorrection[]>([]);
-  const [dailyReports, setDailyReports] = useState<DailyWorkReport[]>([]);
+  const [profiles, setProfiles] = useState<UserProfile[]>(() => AppStore.getProfiles());
+  const [departments, setDepartments] = useState<Department[]>(() => AppStore.getDepartments());
+  const [designations, setDesignations] = useState<Designation[]>(() => AppStore.getDesignations());
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => AppStore.getAttendanceRecords());
+  const [corrections, setCorrections] = useState<AttendanceCorrection[]>(() => AppStore.getCorrections());
+  const [dailyReports, setDailyReports] = useState<DailyWorkReport[]>(() => AppStore.getDailyReports());
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
-  const [settings, setSettings] = useState<AttendanceSettings>(AppStore.getSettings());
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => AppStore.getAuditLogs());
+  const [settings, setSettings] = useState<AttendanceSettings>(() => AppStore.getSettings());
   const [isMobilePreview, setIsMobilePreview] = useState(false);
   const [desktopActiveTab, setDesktopActiveTab] = useState<'dashboard' | 'employees' | 'corrections' | 'reports' | 'masters' | 'audit' | 'settings' | 'profile'>(() => {
     if (typeof window !== 'undefined') {
@@ -694,7 +694,7 @@ export default function Home() {
               onLogout={handleLogout}
               activeTab={desktopActiveTab}
               onTabChange={handleDesktopTabChange}
-              pendingCorrectionsCount={corrections.filter((c) => c.status === 'pending').length}
+              pendingCorrectionsCount={(corrections || []).filter((c) => c && c.status?.toLowerCase() === 'pending').length}
             />
           </div>
 
