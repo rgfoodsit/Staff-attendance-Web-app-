@@ -35,8 +35,45 @@ export default function Home() {
   const [settings, setSettings] = useState<AttendanceSettings>(AppStore.getSettings());
   const [isMobilePreview, setIsMobilePreview] = useState(false);
   const [desktopActiveTab, setDesktopActiveTab] = useState<'dashboard' | 'employees' | 'corrections' | 'reports' | 'masters' | 'audit' | 'settings' | 'profile'>('dashboard');
+  const [employeeActiveTab, setEmployeeActiveTab] = useState<'home' | 'history' | 'profile'>('home');
   const [mounted, setMounted] = useState(false);
   const [currentDateStr, setCurrentDateStr] = useState<string>(getLocalDateString());
+
+  const DESKTOP_TABS = ['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as const;
+  const EMPLOYEE_TABS = ['home', 'history', 'profile'] as const;
+
+  const updateUrlTab = (tab: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('tab') !== tab) {
+        url.searchParams.set('tab', tab);
+        window.history.replaceState(null, '', url.toString());
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleDesktopTabChange = (tab: 'dashboard' | 'employees' | 'corrections' | 'reports' | 'masters' | 'audit' | 'settings' | 'profile') => {
+    setDesktopActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('staff_app_desktop_tab', tab);
+      } catch {}
+      updateUrlTab(tab);
+    }
+  };
+
+  const handleEmployeeTabChange = (tab: 'home' | 'history' | 'profile') => {
+    setEmployeeActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('staff_app_employee_tab', tab);
+      } catch {}
+      updateUrlTab(tab);
+    }
+  };
 
   // Load all initial state
   const refreshState = () => {
@@ -59,6 +96,46 @@ export default function Home() {
       setCurrentUser(sessionUser);
       setIsAuthenticated(true);
       setIsMobilePreview(sessionUser.role === 'employee');
+
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTab = urlParams.get('tab');
+
+        if (sessionUser.role === 'employee') {
+          const savedEmpTab = localStorage.getItem('staff_app_employee_tab') as any;
+          let initialTab: 'home' | 'history' | 'profile' = 'home';
+          if (urlTab && (EMPLOYEE_TABS as readonly string[]).includes(urlTab)) {
+            initialTab = urlTab as 'home' | 'history' | 'profile';
+          } else if (savedEmpTab && (EMPLOYEE_TABS as readonly string[]).includes(savedEmpTab)) {
+            initialTab = savedEmpTab;
+          }
+          setEmployeeActiveTab(initialTab);
+          updateUrlTab(initialTab);
+          try {
+            localStorage.setItem('staff_app_employee_tab', initialTab);
+          } catch {}
+        } else {
+          const savedDeskTab = localStorage.getItem('staff_app_desktop_tab') as any;
+          let candidate: any = 'dashboard';
+          if (urlTab && (DESKTOP_TABS as readonly string[]).includes(urlTab)) {
+            candidate = urlTab;
+          } else if (savedDeskTab && (DESKTOP_TABS as readonly string[]).includes(savedDeskTab)) {
+            candidate = savedDeskTab;
+          }
+
+          if (candidate === 'masters' && sessionUser.role !== 'admin') {
+            candidate = 'dashboard';
+          } else if (candidate === 'settings' && sessionUser.role !== 'hr') {
+            candidate = 'dashboard';
+          }
+
+          setDesktopActiveTab(candidate);
+          updateUrlTab(candidate);
+          try {
+            localStorage.setItem('staff_app_desktop_tab', candidate);
+          } catch {}
+        }
+      }
     } else {
       setIsAuthenticated(false);
     }
@@ -68,6 +145,35 @@ export default function Home() {
     // Sync live master data, profiles, and attendance from Supabase
     syncSupabase();
   }, []);
+
+  // Browser back/forward navigation sync
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window === 'undefined') return;
+      const urlTab = new URLSearchParams(window.location.search).get('tab');
+      if (!urlTab) return;
+      if (currentUser.role === 'employee') {
+        if ((EMPLOYEE_TABS as readonly string[]).includes(urlTab)) {
+          setEmployeeActiveTab(urlTab as any);
+          try {
+            localStorage.setItem('staff_app_employee_tab', urlTab);
+          } catch {}
+        }
+      } else {
+        if ((DESKTOP_TABS as readonly string[]).includes(urlTab)) {
+          if (urlTab === 'masters' && currentUser.role !== 'admin') return;
+          if (urlTab === 'settings' && currentUser.role !== 'hr') return;
+          setDesktopActiveTab(urlTab as any);
+          try {
+            localStorage.setItem('staff_app_desktop_tab', urlTab);
+          } catch {}
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentUser.role]);
 
   async function syncSupabase() {
     try {
@@ -192,7 +298,25 @@ export default function Home() {
     setCurrentUser(switchedUser);
     setNotifications(AppStore.getNotifications(switchedUser.id));
     setIsMobilePreview(role === 'employee');
-    setDesktopActiveTab('dashboard');
+    if (role === 'employee') {
+      handleEmployeeTabChange('home');
+    } else {
+      handleDesktopTabChange('dashboard');
+    }
+  };
+
+  const handleLogout = () => {
+    AppStore.logout();
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('staff_app_desktop_tab');
+        localStorage.removeItem('staff_app_employee_tab');
+        const url = new URL(window.location.href);
+        url.searchParams.delete('tab');
+        window.history.replaceState(null, '', url.pathname);
+      } catch {}
+    }
+    setIsAuthenticated(false);
   };
 
   const handleCheckIn = async (data: { selfieUrl: string; latitude: number; longitude: number; locationName: string }) => {
@@ -482,7 +606,11 @@ export default function Home() {
           setIsAuthenticated(true);
           setCurrentUser(user);
           setIsMobilePreview(user.role === 'employee');
-          setDesktopActiveTab('dashboard');
+          if (user.role === 'employee') {
+            handleEmployeeTabChange('home');
+          } else {
+            handleDesktopTabChange('dashboard');
+          }
           refreshState();
           syncSupabase();
         }}
@@ -513,6 +641,8 @@ export default function Home() {
               todayReport={todayReport}
               settings={settings}
               corrections={corrections}
+              activeTab={employeeActiveTab}
+              onTabChange={handleEmployeeTabChange}
               onCheckIn={handleCheckIn}
               onCheckOut={handleCheckOut}
               onMarkLeave={handleMarkLeave}
@@ -523,10 +653,7 @@ export default function Home() {
                 syncSupabase();
                 refreshState();
               }}
-              onLogout={() => {
-                AppStore.logout();
-                setIsAuthenticated(false);
-              }}
+              onLogout={handleLogout}
             />
           </div>
         </div>
@@ -540,12 +667,9 @@ export default function Home() {
               onRoleChange={handleRoleChange}
               notifications={notifications}
               onNotificationsRead={handleNotificationsRead}
-              onLogout={() => {
-                AppStore.logout();
-                setIsAuthenticated(false);
-              }}
+              onLogout={handleLogout}
               activeTab={desktopActiveTab}
-              onTabChange={setDesktopActiveTab}
+              onTabChange={handleDesktopTabChange}
               pendingCorrectionsCount={corrections.filter((c) => c.status === 'pending').length}
             />
           </div>
@@ -562,7 +686,7 @@ export default function Home() {
               dailyReports={dailyReports}
               auditLogs={auditLogs}
               activeTab={desktopActiveTab}
-              onTabChange={setDesktopActiveTab}
+              onTabChange={handleDesktopTabChange}
               onReviewCorrection={handleReviewCorrection}
               onHrAdjust={handleHrAdjust}
               onUpdateSettings={handleUpdateSettings}

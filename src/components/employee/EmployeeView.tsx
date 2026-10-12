@@ -33,6 +33,8 @@ interface EmployeeViewProps {
   todayReport?: DailyWorkReport;
   settings: AttendanceSettings;
   corrections?: AttendanceCorrection[];
+  activeTab?: 'home' | 'history' | 'profile';
+  onTabChange?: (tab: 'home' | 'history' | 'profile') => void;
   onCheckIn: (data: { selfieUrl: string; latitude: number; longitude: number; locationName: string }) => void;
   onCheckOut: (data: { selfieUrl: string; latitude: number; longitude: number; locationName: string }) => void;
   onMarkLeave: (data: { isHalfDay: boolean; halfType?: 'first_half' | 'second_half'; reason: string; comment?: string }) => void;
@@ -49,6 +51,8 @@ export function EmployeeView({
   todayReport,
   settings,
   corrections = [],
+  activeTab: propActiveTab,
+  onTabChange,
   onCheckIn,
   onCheckOut,
   onMarkLeave,
@@ -62,7 +66,13 @@ export function EmployeeView({
   const [selectedCorrectionRecord, setSelectedCorrectionRecord] = useState<AttendanceRecord | null>(null);
   const [reportText, setReportText] = useState(todayReport?.reportText || '');
   const [reportSaved, setReportSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'profile'>('home');
+  const [internalTab, setInternalTab] = useState<'home' | 'history' | 'profile'>('home');
+
+  const activeTab = propActiveTab !== undefined ? propActiveTab : internalTab;
+  const setActiveTab = (tab: 'home' | 'history' | 'profile') => {
+    setInternalTab(tab);
+    onTabChange?.(tab);
+  };
 
   const hasCheckedIn = !!todayRecord?.checkinTime && todayRecord?.status !== 'forgotten_checkout';
   const hasCheckedOut = !!todayRecord?.checkoutTime && todayRecord?.status !== 'forgotten_checkout';
