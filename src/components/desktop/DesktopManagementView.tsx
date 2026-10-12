@@ -192,9 +192,11 @@ export function DesktopManagementView({
     });
   }, [attendanceRecords, filterDept, filterStatus, dateRange, searchQuery, todayStr]);
 
-  // Dashboard KPI Metrics (PRD Section 54)
-  const totalEmployees = profiles.length;
-  const todayRecords = attendanceRecords.filter((r) => r.attendanceDate === todayStr);
+  // Dashboard KPI Metrics (PRD Section 54): Exclude HR and Admin from Total Staff count
+  const staffProfiles = (profiles || []).filter((p) => p && p.role === 'employee');
+  const totalEmployees = staffProfiles.length;
+  const nonStaffIds = new Set((profiles || []).filter((p) => p && (p.role === 'hr' || p.role === 'admin')).map((p) => p.id));
+  const todayRecords = attendanceRecords.filter((r) => r.attendanceDate === todayStr && !nonStaffIds.has(r.profileId));
   const presentToday = todayRecords.filter((r) => ['present', 'checked_in', 'checked_out'].includes(r.status) && !r.isLate).length;
   const lateToday = todayRecords.filter((r) => r.isLate).length;
   const absentToday = todayRecords.filter((r) => r.status === 'absent').length;
@@ -1353,8 +1355,8 @@ export function DesktopManagementView({
                 </div>
                 <div className="space-y-1.5 text-slate-600 dark:text-slate-400">
                   <div className="flex justify-between">
-                    <span>Total Employees:</span>
-                    <strong className="text-slate-800 dark:text-slate-200">{profiles.length}</strong>
+                    <span>Total Staff (Employees):</span>
+                    <strong className="text-slate-800 dark:text-slate-200">{totalEmployees}</strong>
                   </div>
                   <div className="flex justify-between">
                     <span>Active Departments:</span>
