@@ -276,36 +276,36 @@ export function LiveAttendanceModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-slate-900/95 border border-slate-800/90 rounded-t-3xl sm:rounded-3xl max-w-md w-full overflow-hidden shadow-2xl flex flex-col max-h-[92vh] backdrop-blur-xl">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={`p-2 rounded-lg ${type === 'checkin' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400'}`}>
+        <div className="px-5 py-4 border-b border-slate-800/80 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-2xl ${type === 'checkin' ? 'bg-indigo-500/15 text-indigo-400 ring-1 ring-indigo-500/30' : 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30'}`}>
               <Camera className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-900 dark:text-white capitalize">
-                {type === 'checkin' ? 'Check-in Verification' : 'Check-out Verification'}
+              <h3 className="font-bold text-white text-base capitalize tracking-tight">
+                {type === 'checkin' ? 'Check-in Biometric' : 'Check-out Biometric'}
               </h3>
-              <p className="text-xs text-slate-500">Live Selfie & GPS Evidence</p>
+              <p className="text-xs text-slate-400">Live Face & GPS Verification</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition"
+            className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-5 flex-1 overflow-y-auto space-y-4">
+        <div className="p-5 flex-1 overflow-y-auto space-y-4 no-scrollbar">
           {errorMsg && (
-            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div className="p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-2xl text-amber-300 text-xs flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
               <div className="space-y-1.5 flex-1">
-                <p className="font-semibold">GPS Location Notice</p>
+                <p className="font-bold text-amber-200">GPS Location Notice</p>
                 <p className="text-[11px] opacity-90 leading-relaxed">{errorMsg}</p>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <button
@@ -313,7 +313,7 @@ export function LiveAttendanceModal({
                     onClick={() => {
                       fetchLocation();
                     }}
-                    className="px-3 py-1.5 text-xs font-semibold bg-amber-200 dark:bg-amber-900/80 hover:bg-amber-300 dark:hover:bg-amber-800 text-amber-900 dark:text-amber-100 rounded-lg transition flex items-center gap-1.5 shadow-xs"
+                    className="px-3 py-1.5 text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
                     Retry GPS Access
@@ -325,8 +325,8 @@ export function LiveAttendanceModal({
 
           {step === 'capture' ? (
             <div className="space-y-4">
-              {/* Camera Preview */}
-              <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner flex items-center justify-center">
+              {/* Camera Preview with Biometric Frame & Reticles */}
+              <div className="relative aspect-square w-full rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl flex items-center justify-center">
                 <video
                   ref={videoRef}
                   playsInline
@@ -336,81 +336,89 @@ export function LiveAttendanceModal({
                 />
                 <canvas ref={canvasRef} className="hidden" />
 
+                {/* Viewfinder Reticle Corners */}
+                <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-indigo-400 rounded-tl-lg pointer-events-none" />
+                <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-indigo-400 rounded-tr-lg pointer-events-none" />
+                <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-indigo-400 rounded-bl-lg pointer-events-none" />
+                <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-indigo-400 rounded-br-lg pointer-events-none" />
+
                 {/* Face Alignment Overlay Frame */}
-                <div className="absolute inset-8 border-2 border-dashed border-indigo-400/60 rounded-full pointer-events-none flex items-center justify-center">
-                  <span className="text-[11px] text-white/70 bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-xs">
-                    Position Face Inside
+                <div className="absolute inset-10 border-2 border-dashed border-indigo-400/50 rounded-full pointer-events-none flex items-center justify-center">
+                  <span className="text-[10px] font-semibold text-white/90 bg-black/60 px-3 py-1 rounded-full backdrop-blur-md border border-white/10 tracking-wide">
+                    Align Face Here
                   </span>
                 </div>
 
                 {/* Scan line effect */}
-                <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-75 animate-scan-line pointer-events-none" />
+                <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-indigo-400 to-transparent opacity-80 animate-scan-line pointer-events-none shadow-[0_0_12px_rgba(99,102,241,0.8)]" />
               </div>
 
               {/* Location Status Pill */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-                <MapPin
-                  className={`w-4 h-4 flex-shrink-0 ${
-                    coords
-                      ? 'text-emerald-500'
-                      : isLocating
-                      ? 'text-amber-500 animate-pulse'
-                      : 'text-slate-400'
-                  }`}
-                />
-                <div className="flex-1 truncate">
+              <div className="p-3.5 bg-slate-950/70 rounded-2xl flex items-center gap-3 text-xs border border-slate-800/80 shadow-md">
+                <div className={`p-2 rounded-xl shrink-0 ${coords ? 'bg-emerald-500/15 text-emerald-400' : isLocating ? 'bg-amber-500/15 text-amber-400 animate-pulse' : 'bg-slate-800 text-slate-400'}`}>
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                    <span className="font-bold text-white text-xs">
                       {coords
                         ? coords.accuracy && coords.accuracy <= 30
                           ? 'GPS Locked (High Precision)'
                           : 'GPS Locked'
                         : isLocating
-                        ? 'Acquiring GPS...'
+                        ? 'Acquiring GPS Signal...'
                         : 'GPS Waiting'}
                     </span>
                     {coords?.accuracy && (
-                      <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded font-mono">
+                      <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full font-mono border border-emerald-500/30">
                         &plusmn;{Math.round(coords.accuracy)}m
                       </span>
                     )}
                   </div>
-                  <p className="truncate text-[11px] text-slate-500">{locationName}</p>
+                  <p className="truncate text-[11px] text-slate-400 mt-0.5">{locationName}</p>
                 </div>
                 <button
                   type="button"
                   title="Refresh GPS"
                   onClick={fetchLocation}
                   disabled={isLocating}
-                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition shrink-0 cursor-pointer"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
                 </button>
               </div>
 
-              {/* Capture Button */}
-              <button
-                type="button"
-                onClick={takeSnapshot}
-                disabled={isCapturing || !coords}
-                className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition active:scale-[0.99]"
-              >
-                <Camera className="w-5 h-5" />
-                <span>Capture Live Selfie</span>
-              </button>
+              {/* Shutter Capture Button (Camera Style) */}
+              <div className="pt-2 text-center space-y-2">
+                <button
+                  type="button"
+                  onClick={takeSnapshot}
+                  disabled={isCapturing || !coords}
+                  className="mx-auto flex flex-col items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed group cursor-pointer"
+                >
+                  <div className="w-16 h-16 rounded-full border-4 border-indigo-500/40 p-1 group-hover:border-indigo-400 transition-all flex items-center justify-center">
+                    <div className="w-full h-full rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 group-hover:scale-95 group-active:scale-90 transition-all shadow-lg shadow-indigo-500/40 flex items-center justify-center text-white">
+                      <Camera className="w-6 h-6" />
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-indigo-300 tracking-tight group-hover:text-indigo-200">
+                    Tap to Capture Selfie
+                  </span>
+                </button>
+              </div>
             </div>
           ) : (
             /* Review Step (PRD Rule #18) */
             <div className="space-y-4 animate-in fade-in-50">
               <div className="text-center">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 text-xs font-medium rounded-full mb-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Ready for Confirmation
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-full border border-emerald-500/30 mb-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Evidence Verified
                 </span>
-                <p className="text-xs text-slate-500">Please review attendance evidence before submitting</p>
+                <p className="text-xs text-slate-400">Review your live capture before final confirmation</p>
               </div>
 
-              {/* Selfie Preview */}
-              <div className="relative aspect-square w-full max-w-[240px] mx-auto rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-md">
+              {/* Selfie Preview with badge */}
+              <div className="relative aspect-square w-full max-w-[220px] mx-auto rounded-3xl overflow-hidden border-2 border-indigo-500/60 shadow-xl shadow-indigo-500/10">
                 {selfieDataUrl && (
                   <img
                     src={selfieDataUrl}
@@ -418,32 +426,35 @@ export function LiveAttendanceModal({
                     className="w-full h-full object-cover"
                   />
                 )}
+                <div className="absolute bottom-2 inset-x-2 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-xl text-center border border-white/10 text-[10px] text-white/90 font-mono">
+                  Live Camera Stamp
+                </div>
               </div>
 
               {/* Evidence Summary Card */}
-              <div className="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 space-y-2.5 text-xs border border-slate-200/80 dark:border-slate-700/80">
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                  <span className="text-slate-500">Attendance Time:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-100">
+              <div className="bg-slate-950/70 rounded-2xl p-4 space-y-2.5 text-xs border border-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                  <span className="text-slate-400">Recorded Time:</span>
+                  <span className="font-bold text-white font-mono">
                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                 </div>
                 <div className="flex items-start justify-between gap-3">
-                  <span className="text-slate-500 flex-shrink-0">Detected Location:</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-100 text-right text-[11px] leading-relaxed">
+                  <span className="text-slate-400 shrink-0">Location:</span>
+                  <span className="font-medium text-slate-200 text-right text-[11px] leading-relaxed">
                     {locationName}
                   </span>
                 </div>
                 {coords && (
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                    <span>GPS Coordinates:</span>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/60">
+                    <span>Coordinates:</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono">{coords.latitude.toFixed(6)}, {coords.longitude.toFixed(6)}</span>
+                      <span className="font-mono text-indigo-300">{coords.latitude.toFixed(6)}, {coords.longitude.toFixed(6)}</span>
                       <a
                         href={`https://www.google.com/maps?q=${coords.latitude},${coords.longitude}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-0.5 text-[10px]"
+                        className="text-indigo-400 hover:text-indigo-300 hover:underline inline-flex items-center gap-0.5 text-[10px]"
                       >
                         <span>Map</span>
                         <ExternalLink className="w-2.5 h-2.5" />
@@ -458,7 +469,7 @@ export function LiveAttendanceModal({
                 <button
                   type="button"
                   onClick={retake}
-                  className="py-3 px-3 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition"
+                  className="py-3.5 px-3 border border-slate-700/80 hover:bg-slate-800 text-slate-300 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
                   <span>Retake Selfie</span>
@@ -466,7 +477,7 @@ export function LiveAttendanceModal({
                 <button
                   type="button"
                   onClick={handleFinalConfirm}
-                  className="py-3 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition"
+                  className="py-3.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
                 >
                   <CheckCircle className="w-4 h-4" />
                   <span>Confirm & Submit</span>
@@ -479,3 +490,4 @@ export function LiveAttendanceModal({
     </div>
   );
 }
+

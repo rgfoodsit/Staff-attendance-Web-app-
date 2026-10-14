@@ -61,17 +61,44 @@ body {
 /* Glassmorphism utility */
 .glass-panel {
   background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Pulse animation for live attendance recording */
 @keyframes camera-scan {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(1000%); }
+  0% { transform: translateY(0%); opacity: 0.2; }
+  50% { opacity: 0.9; }
+  100% { transform: translateY(320px); opacity: 0.2; }
 }
 
 .animate-scan-line {
-  animation: camera-scan 3s ease-in-out infinite alternate;
+  animation: camera-scan 2.4s ease-in-out infinite;
 }
+
+/* Safe area padding utilities */
+.pt-safe {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Hide scrollbars for clean native app look */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
