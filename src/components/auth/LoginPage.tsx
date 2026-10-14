@@ -71,7 +71,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
     const query = identifier.trim();
     if (!query) {
-      setError('Please enter your Employee ID or Work Email.');
+      setError('Please enter your Employee ID.');
       setIsLoading(false);
       return;
     }
@@ -350,7 +350,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 Sign in to your account
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Enter your Employee ID or Work Email to access the portal
+                Enter your Employee ID to access the portal
               </p>
             </div>
 
@@ -364,15 +364,15 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <form onSubmit={handleLogin} className="space-y-3">
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  Employee ID or Email
+                  Employee ID
                 </label>
                 <input
                   type="text"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="e.g. EMP-101 or name@company.com"
-                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
+                  placeholder="e.g. EMP-101"
+                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-mono uppercase placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
                 />
               </div>
 
