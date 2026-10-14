@@ -224,7 +224,7 @@ export function EmployeeView({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           {/* Refresh Action Button */}
           {onRefresh && (
             <button
@@ -237,32 +237,13 @@ export function EmployeeView({
                   setTimeout(() => setIsRefreshing(false), 500);
                 }
               }}
-              className="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800/80 transition active:scale-95"
+              className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800/80 transition active:scale-95 cursor-pointer shadow-xs"
               title="Refresh Data"
               aria-label="Refresh Data"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
             </button>
           )}
-
-          {/* Profile Avatar Button */}
-          <button
-            onClick={() => setActiveTab('profile')}
-            className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-indigo-600/20 ring-1 ring-white/20 active:scale-95 transition"
-            title="My Profile"
-          >
-            {currentUser.fullName.charAt(0)}
-          </button>
-
-          {/* Quick Sign Out */}
-          <button
-            onClick={onLogout}
-            className="p-2 rounded-xl bg-slate-900/80 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-slate-800/80 transition active:scale-95"
-            title="Sign Out"
-            aria-label="Sign Out"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
         </div>
       </header>
 
