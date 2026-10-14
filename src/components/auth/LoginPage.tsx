@@ -195,11 +195,11 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       {/* Main Container Card */}
       <div className="relative w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 p-3 sm:p-4 gap-4">
         {/* Left Column: Clean Hero Illustration Card */}
-        <div className="lg:col-span-6 xl:col-span-7 relative rounded-[2rem] bg-gradient-to-b from-[#E8EFFB] via-[#E2ECFA] to-[#D8E6F9] overflow-hidden flex items-center justify-center p-6 sm:p-10 min-h-[380px] lg:min-h-[540px] border border-slate-200/60 shadow-inner">
+        <div className="lg:col-span-6 xl:col-span-7 relative rounded-[2rem] bg-gradient-to-br from-slate-50 via-white to-amber-50/30 overflow-hidden flex items-center justify-center p-6 sm:p-10 min-h-[380px] lg:min-h-[540px] border border-slate-100 shadow-inner">
           <img
             src="/login-hero.jpg"
-            alt="Team Collaboration & Attendance"
-            className="w-full max-w-lg h-auto object-contain rounded-2xl drop-shadow-md transition-transform duration-500 hover:scale-[1.02] z-10"
+            alt="Workplace Collaboration & Attendance"
+            className="w-full max-w-lg h-auto object-contain mix-blend-multiply transition-transform duration-500 hover:scale-[1.02] z-10"
           />
         </div>
 
