@@ -22,9 +22,9 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [departments, setDepartments] = useState<MasterOption[]>([]);
   const [designations, setDesignations] = useState<MasterOption[]>([]);
 
-  // Sign-in Form
-  const [identifier, setIdentifier] = useState('ADM-001');
-  const [password, setPassword] = useState('Admin@123456');
+  // Sign-in Form (Empty defaults for deploy-ready production)
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
 
   // Setup Super Admin Form (First run)
   const [setupFullName, setSetupFullName] = useState('');
@@ -187,259 +187,231 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 p-3 sm:p-6 lg:p-10 relative overflow-hidden select-none">
+    <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 p-4 sm:p-6 relative overflow-hidden select-none">
       {/* Background Ambient Glows */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Container Card */}
-      <div className="relative w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 p-3 sm:p-4 gap-4">
-        {/* Left Column: Clean Hero Illustration Card */}
-        <div className="lg:col-span-6 xl:col-span-7 relative rounded-[2rem] bg-gradient-to-br from-slate-50 via-white to-amber-50/30 overflow-hidden flex items-center justify-center p-6 sm:p-10 min-h-[380px] lg:min-h-[540px] border border-slate-100 shadow-inner">
+      {/* Tight, Deploy-Level Login Card */}
+      <div className="relative w-full max-w-[440px] bg-white rounded-3xl shadow-2xl p-6 sm:p-7 space-y-4 border border-slate-100 text-slate-900">
+        {/* Top Brand Logo and Name */}
+        <div className="flex items-center justify-between pb-1">
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo.png"
+              alt="RG StaffTrack Logo"
+              className="w-9 h-9 rounded-xl object-contain shadow-xs"
+            />
+            <div>
+              <div className="font-extrabold text-lg tracking-tight text-slate-900 leading-none">
+                RG StaffTrack
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium tracking-tight">Workforce Portal</div>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Live
+          </span>
+        </div>
+
+        {/* Hero Illustration: Sized Naturally according to image aspect ratio */}
+        <div className="w-full overflow-hidden rounded-2xl bg-white border border-slate-100 p-1 shadow-xs">
           <img
             src="/login-hero.jpg"
             alt="Workplace Collaboration & Attendance"
-            className="w-full max-w-lg h-auto object-contain mix-blend-multiply transition-transform duration-500 hover:scale-[1.02] z-10"
+            className="w-full h-auto object-contain block transition-transform duration-300 hover:scale-[1.01]"
           />
         </div>
 
-        {/* Right Column: Clean White Authentication Form */}
-        <div className="lg:col-span-6 xl:col-span-5 p-4 sm:p-8 flex flex-col justify-between space-y-6 bg-white text-slate-900">
-          {/* Top Brand Logo and Name */}
-          <div className="flex items-center">
-            <div className="flex items-center gap-2.5">
-              <img
-                src="/logo.png"
-                alt="RG StaffTrack Logo"
-                className="w-9 h-9 rounded-xl object-contain shadow-xs"
-              />
-              <span className="font-extrabold text-xl tracking-tight text-slate-900">
-                RG StaffTrack
-              </span>
+        {/* Form Content */}
+        {!isInitialized ? (
+          /* Initial Setup Super Admin Screen */
+          <div className="space-y-4 pt-1">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-[11px] font-bold mb-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>First-Time Workspace Setup</span>
+              </div>
+              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                Create Admin Account
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Set up your primary administrator account to begin live workforce tracking.
+              </p>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSetupAdmin} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={setupFullName}
+                  onChange={(e) => setSetupFullName(e.target.value)}
+                  placeholder="e.g. Alex Morgan"
+                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                    Employee ID *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={setupEmployeeId}
+                    onChange={(e) => setSetupEmployeeId(e.target.value)}
+                    placeholder="ADM-001"
+                    className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-mono uppercase placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                    Department
+                  </label>
+                  <select
+                    value={setupDepartmentId}
+                    onChange={(e) => setSetupDepartmentId(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs focus:outline-none focus:border-red-500 transition"
+                  >
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                  Official Work Email *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={setupEmail}
+                  onChange={(e) => setSetupEmail(e.target.value)}
+                  placeholder="admin@yourcompany.com"
+                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                  Password (min 6 chars) *
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={setupPassword}
+                  onChange={(e) => setSetupPassword(e.target.value)}
+                  placeholder="Create secure password"
+                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-11 mt-1 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-[0.99] text-white font-semibold rounded-xl shadow-lg shadow-red-600/30 transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Initializing...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-4 h-4" />
+                    <span>Create Super Admin & Launch</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        ) : (
+          /* Standard Production Sign In Screen (Tight & Deploy-Ready) */
+          <div className="space-y-4 pt-1">
+            <div>
+              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                Sign in to your account
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Enter your Employee ID or Work Email to access the portal
+              </p>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                  Employee ID or Email
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="e.g. EMP-101 or name@company.com"
+                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-11 mt-1 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-[0.99] text-white font-bold rounded-xl shadow-lg shadow-red-600/25 transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Verifying credentials...</span>
+                  </>
+                ) : (
+                  <span>Sign in</span>
+                )}
+              </button>
+            </form>
+
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Employee account help?</span>
+              <span className="text-red-600 font-semibold">Contact HR / Admin</span>
             </div>
           </div>
-
-          {/* Form Content */}
-          <div className="space-y-5 my-auto">
-            {!isInitialized ? (
-              /* Initial Setup Super Admin Screen */
-              <>
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-[11px] font-bold mb-2">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>First-Time Workspace Setup</span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Create Admin
-                  </h1>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Set up your primary organization administrator account to begin live workforce tracking.
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSetupAdmin} className="space-y-3">
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={setupFullName}
-                      onChange={(e) => setSetupFullName(e.target.value)}
-                      placeholder="e.g. Alex Morgan"
-                      className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-hidden focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                        Employee ID *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={setupEmployeeId}
-                        onChange={(e) => setSetupEmployeeId(e.target.value)}
-                        placeholder="ADM-001"
-                        className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-mono uppercase placeholder-slate-400 focus:outline-hidden focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                        Department
-                      </label>
-                      <select
-                        value={setupDepartmentId}
-                        onChange={(e) => setSetupDepartmentId(e.target.value)}
-                        className="w-full h-11 px-3 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs focus:outline-hidden focus:border-red-500 transition"
-                      >
-                        {departments.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                      Official Work Email *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={setupEmail}
-                      onChange={(e) => setSetupEmail(e.target.value)}
-                      placeholder="admin@yourcompany.com"
-                      className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-hidden focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                      Password (min 6 chars) *
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      minLength={6}
-                      value={setupPassword}
-                      onChange={(e) => setSetupPassword(e.target.value)}
-                      placeholder="Create secure password"
-                      className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-hidden focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full h-12 mt-2 bg-red-600 hover:bg-red-700 active:scale-[0.99] text-white font-semibold rounded-2xl shadow-lg shadow-red-600/30 transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Initializing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck className="w-4 h-4" />
-                        <span>Create Super Admin & Launch</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-              </>
-            ) : (
-              /* Standard Production Sign In Screen */
-              <>
-                <div>
-                  <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                    Sign in
-                  </h1>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Sign in with your Employee ID or Work Email
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleLogin} className="space-y-3.5">
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                      Employee ID or Email
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="e.g. ADM-001 or name@company.com"
-                      className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-hidden focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter password"
-                      className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-hidden focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full h-12 mt-2 bg-red-600 hover:bg-red-700 active:scale-[0.99] text-white font-semibold rounded-2xl shadow-lg shadow-red-600/30 transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Verifying credentials...</span>
-                      </>
-                    ) : (
-                      <span>Sign in</span>
-                    )}
-                  </button>
-                </form>
-
-                {/* Quick Fill for Admin & HR */}
-                <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
-                    Quick Sign-In (Click to Autofill)
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIdentifier('ADM-001');
-                        setPassword('Admin@123456');
-                      }}
-                      className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition cursor-pointer border border-slate-200"
-                    >
-                      🛡️ Admin (ADM-001)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIdentifier('HR-001');
-                        setPassword('Hr@123456');
-                      }}
-                      className="flex-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-xl text-xs font-semibold transition cursor-pointer border border-indigo-200"
-                    >
-                      👥 HR (HR-001)
-                    </button>
-                  </div>
-                </div>
-
-                <div className="pt-1 flex items-center justify-between text-xs text-slate-500">
-                  <span>Employee without account?</span>
-                  <span className="text-red-600 font-semibold">Contact your HR or Admin</span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
