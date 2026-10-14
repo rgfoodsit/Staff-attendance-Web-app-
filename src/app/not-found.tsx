@@ -16,7 +16,7 @@ export default function NotFound() {
         href="/"
         className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-red-600/30 transition active:scale-95"
       >
-        Go to puchIn Portal
+        Go to RG StaffTrack Portal
       </Link>
     </div>
   );

@@ -14,8 +14,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "puchIn | Staff Attendance Portal",
-  description: "Role-based attendance tracking, live selfie & GPS verification, and workforce analytics.",
+  title: "RG StaffTrack | Workforce Attendance Portal",
+  description: "Role-based attendance tracking, live selfie & GPS verification, and workforce analytics with RG StaffTrack.",
   icons: {
     icon: "/icon.png",
     apple: "/icon.png",

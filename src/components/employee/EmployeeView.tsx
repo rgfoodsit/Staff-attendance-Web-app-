@@ -206,7 +206,7 @@ export function EmployeeView({
           <div className="relative">
             <img
               src="/logo.png"
-              alt="puchIn"
+              alt="RG StaffTrack"
               className="w-8 h-8 rounded-xl object-contain shadow-md ring-1 ring-white/10"
             />
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-950" />
@@ -214,7 +214,7 @@ export function EmployeeView({
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-base tracking-tight text-white leading-none">
-                puchIn
+                RG StaffTrack
               </span>
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 tracking-wider">
                 PORTAL
@@ -778,7 +778,7 @@ export function EmployeeView({
                     className="w-full py-3.5 px-4 bg-rose-500/10 hover:bg-rose-500/20 active:scale-[0.98] border border-rose-500/30 text-rose-300 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
                   >
                     <LogOut className="w-4 h-4 text-rose-400" />
-                    <span>Sign Out from puchIn</span>
+                    <span>Sign Out from RG StaffTrack</span>
                   </button>
                 </div>
               </div>

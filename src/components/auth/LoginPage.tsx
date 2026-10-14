@@ -210,11 +210,11 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <div className="flex items-center gap-2.5">
               <img
                 src="/logo.png"
-                alt="puchIn Logo"
-                className="w-8 h-8 rounded-xl object-contain shadow-xs"
+                alt="RG StaffTrack Logo"
+                className="w-9 h-9 rounded-xl object-contain shadow-xs"
               />
               <span className="font-extrabold text-xl tracking-tight text-slate-900">
-                puchIn
+                RG StaffTrack
               </span>
             </div>
           </div>

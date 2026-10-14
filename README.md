@@ -1,4 +1,4 @@
-# Staff Attendance Web Application (V1)
+# RG StaffTrack (V1)
 
 A role-based attendance management and workforce intelligence system built strictly adhering to the Product Requirements Document (PRD).
 
