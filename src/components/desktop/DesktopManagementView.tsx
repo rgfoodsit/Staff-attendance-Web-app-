@@ -321,6 +321,24 @@ export function DesktopManagementView({
   }) => {
     let updatedProfiles: UserProfile[];
     if (editingEmployee) {
+      try {
+        fetch('/api/employees/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingEmployee.id,
+            fullName: userData.fullName,
+            employeeId: userData.employeeId,
+            departmentId: userData.departmentId,
+            designationId: userData.designationId,
+            role: userData.role,
+            password: userData.password,
+          }),
+        }).catch((e) => console.error('Failed to sync employee update to server:', e));
+      } catch (err) {
+        console.error('Error initiating employee update:', err);
+      }
+
       updatedProfiles = (profiles || []).filter((p): p is UserProfile => Boolean(p && p.id)).map((p) => {
         if (p.id === editingEmployee.id) {
           return {

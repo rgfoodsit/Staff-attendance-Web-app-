@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserPlus, UserCheck, X, AlertCircle, KeyRound, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { UserProfile, Department, Designation, UserRole } from '@/types';
 
@@ -41,6 +41,19 @@ export function EmployeeModal({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFullName(editingUser?.fullName || '');
+      setEmployeeId(editingUser?.employeeId || '');
+      setDepartmentId(editingUser?.departmentId || departments[0]?.id || '');
+      setDesignationId(editingUser?.designationId || designations[0]?.id || '');
+      setRole(editingUser?.role || 'employee');
+      setPassword('');
+      setShowPassword(false);
+      setError(null);
+    }
+  }, [isOpen, editingUser, departments, designations]);
 
   if (!isOpen) return null;
 
@@ -199,28 +212,58 @@ export function EmployeeModal({
 
           {/* Login Password */}
           <div>
-            <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-              {editingUser ? 'Reset Password (leave blank to keep current)' : 'Initial Password'}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+                {editingUser ? 'Reset Password (leave blank to keep current)' : 'Initial Password'} {!editingUser && <span className="text-rose-500">*</span>}
+              </label>
+              {password && (
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                  {showPassword ? 'Password visible' : 'Password hidden'}
+                </span>
+              )}
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-                className="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                placeholder={
+                  editingUser
+                    ? (showPassword ? 'Type new password to replace current' : '•••••••• (leave blank to keep current)')
+                    : (showPassword ? 'Enter initial password' : '••••••••')
+                }
+                className="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none"
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowPassword((prev) => !prev);
+                }}
                 tabIndex={-1}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors cursor-pointer z-10 ${
+                  showPassword
+                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
                 title={showPassword ? 'Hide password' : 'View password'}
                 aria-label={showPassword ? 'Hide password' : 'View password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {editingUser && (
+              <p className="text-[10px] text-slate-400 mt-1">
+                {password
+                  ? (showPassword
+                      ? 'New password is visible in plain text. Click eye to mask.'
+                      : 'New password entered. Click eye to view.')
+                  : (showPassword
+                      ? 'Existing password is encrypted for security. Type here to view and set a new password.'
+                      : 'Existing password is encrypted. Click eye or type to view / set a new password.')}
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
