@@ -18,12 +18,14 @@ import { LeftSidebar } from '@/components/navigation/LeftSidebar';
 import { EmployeeView } from '@/components/employee/EmployeeView';
 import { DesktopManagementView } from '@/components/desktop/DesktopManagementView';
 import { LoginPage } from '@/components/auth/LoginPage';
+import { AppLaunchSplash } from '@/components/common/AppLaunchSplash';
 import { Smartphone, Laptop, AlertCircle } from 'lucide-react';
 import { getLocalDateString } from '@/lib/utils';
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<UserProfile>(AppStore.getCurrentUser());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [showSplash, setShowSplash] = useState<boolean>(true);
   const [profiles, setProfiles] = useState<UserProfile[]>(() => AppStore.getProfiles());
   const [departments, setDepartments] = useState<Department[]>(() => AppStore.getDepartments());
   const [designations, setDesignations] = useState<Designation[]>(() => AppStore.getDesignations());
@@ -656,28 +658,29 @@ export default function Home() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-      </div>
+      <div className="fixed inset-0 z-50 bg-[#673AB7]" />
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <LoginPage
-        onLoginSuccess={(user) => {
-          setIsAuthenticated(true);
-          setCurrentUser(user);
-          setIsMobilePreview(user.role === 'employee');
-          if (user.role === 'employee') {
-            handleEmployeeTabChange('home');
-          } else {
-            handleDesktopTabChange('dashboard');
-          }
-          refreshState();
-          syncSupabase();
-        }}
-      />
+      <>
+        {showSplash && <AppLaunchSplash onComplete={() => setShowSplash(false)} />}
+        <LoginPage
+          onLoginSuccess={(user) => {
+            setIsAuthenticated(true);
+            setCurrentUser(user);
+            setIsMobilePreview(user.role === 'employee');
+            if (user.role === 'employee') {
+              handleEmployeeTabChange('home');
+            } else {
+              handleDesktopTabChange('dashboard');
+            }
+            refreshState();
+            syncSupabase();
+          }}
+        />
+      </>
     );
   }
 
@@ -693,6 +696,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      {showSplash && <AppLaunchSplash onComplete={() => setShowSplash(false)} />}
       {isEmployee ? (
         /* Native Full-Screen Mobile App View for Employees */
         <div className="w-full min-h-screen flex flex-col items-center">
