@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'RG StaffTrack',
-    short_name: 'RG StaffTrack',
+    name: 'StaffTrack',
+    short_name: 'StaffTrack',
     description: 'Workforce Attendance Portal - Live Face & GPS Verification',
     start_url: '/?tab=home',
     display: 'standalone',

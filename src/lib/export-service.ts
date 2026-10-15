@@ -74,7 +74,7 @@ export async function exportToPDF(records: AttendanceRecord[], fileName = 'Staff
 
   doc.setFontSize(18);
   doc.setTextColor(30, 41, 59);
-  doc.text('RG StaffTrack - Attendance Report', 14, 18);
+  doc.text('StaffTrack - Attendance Report', 14, 18);
 
   doc.setFontSize(10);
   doc.setTextColor(100, 116, 139);

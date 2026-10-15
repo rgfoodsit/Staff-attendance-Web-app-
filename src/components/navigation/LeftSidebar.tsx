@@ -70,12 +70,12 @@ export function LeftSidebar({
           <div className="w-11 shrink-0 flex items-center justify-center">
             <img
               src="/logo.png"
-              alt="RG StaffTrack Logo"
+              alt="StaffTrack Logo"
               className="w-9 h-9 rounded-xl object-contain shadow-md shadow-red-500/20"
             />
           </div>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden pl-1.5">
-            <span className="font-bold text-lg text-white tracking-tight">RG StaffTrack</span>
+            <span className="font-bold text-lg text-white tracking-tight">StaffTrack</span>
           </div>
         </div>
       </div>

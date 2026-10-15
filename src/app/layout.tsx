@@ -14,8 +14,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "RG StaffTrack | Workforce Attendance Portal",
-  description: "Role-based attendance tracking, live selfie & GPS verification, and workforce analytics with RG StaffTrack.",
+  title: "StaffTrack | Workforce Attendance Portal",
+  description: "Role-based attendance tracking, live selfie & GPS verification, and workforce analytics with StaffTrack.",
   icons: {
     icon: "/icon.png",
     apple: "/icon.png",

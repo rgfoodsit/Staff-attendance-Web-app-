@@ -199,12 +199,12 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           <div className="flex items-center gap-2.5">
             <img
               src="/logo.png"
-              alt="RG StaffTrack Logo"
+              alt="StaffTrack Logo"
               className="w-9 h-9 rounded-xl object-contain shadow-xs"
             />
             <div>
               <div className="font-extrabold text-lg tracking-tight text-slate-900 leading-none">
-                RG StaffTrack
+                StaffTrack
               </div>
               <div className="text-[10px] text-slate-400 font-medium tracking-tight">Workforce Portal</div>
             </div>
