@@ -59,11 +59,20 @@ export function EmployeeModal({
   };
 
   const resolvedRole = (editingUser?.role || (editingUser as any)?.role || 'employee') as UserRole;
+
+  const defaultCalculatedPwd = (() => {
+    if (!editingUser) return '';
+    const name = resolvedFullName || '';
+    if (!name) return '';
+    const first = name.trim().split(' ')[0].toLowerCase();
+    return first.charAt(0).toUpperCase() + first.slice(1) + '@123';
+  })();
+
   const existingPassword =
     editingUser?.assignedPassword ||
     (editingUser as any)?.assigned_password ||
     (editingUser as any)?.password ||
-    '';
+    (resolvedRole === 'employee' ? defaultCalculatedPwd : '');
 
   const [fullName, setFullName] = useState(resolvedFullName);
   const [employeeId, setEmployeeId] = useState(resolvedEmployeeId);
@@ -255,7 +264,7 @@ export function EmployeeModal({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="font-semibold text-slate-700 dark:text-slate-300 block">
-                {editingUser ? 'Reset Password (leave blank to keep current)' : 'Initial Password'} {!editingUser && <span className="text-rose-500">*</span>}
+                {editingUser ? 'Existing Password (or enter new to reset)' : 'Initial Password'} {!editingUser && <span className="text-rose-500">*</span>}
               </label>
               {password && (
                 <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
@@ -270,10 +279,10 @@ export function EmployeeModal({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={
                   editingUser
-                    ? (showPassword ? 'Type new password to replace current' : '•••••••• (leave blank to keep current)')
+                    ? (showPassword ? 'Enter new password or view current' : '••••••••')
                     : (showPassword ? 'Enter initial password' : '••••••••')
                 }
-                className="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
               />
               <button
                 type="button"
@@ -298,11 +307,9 @@ export function EmployeeModal({
               <p className="text-[10px] text-slate-400 mt-1">
                 {password
                   ? (showPassword
-                      ? 'Current password is visible in plain text. Click eye to mask.'
-                      : 'Password is set and masked. Click eye icon to view.')
-                  : (showPassword
-                      ? 'Legacy password was stored as an irreversible cryptographic hash before tracking was enabled. Type a new password here to view and update it.'
-                      : 'Existing password is encrypted. Click eye to view or type to update.')}
+                      ? 'Existing password is shown in plain text. Click eye to mask.'
+                      : 'Existing password is loaded and masked. Click eye to view.')
+                  : 'Click eye to view or type a new password.'}
               </p>
             )}
           </div>
