@@ -209,9 +209,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <div className="text-[10px] text-slate-400 font-medium tracking-tight">Workforce Portal</div>
             </div>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Live
-          </span>
+
         </div>
 
         {/* Hero Illustration: Sized Naturally according to image aspect ratio */}
