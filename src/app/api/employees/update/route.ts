@@ -31,20 +31,29 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. If new password provided, update in Supabase Auth
-    if (password && typeof password === 'string' && password.trim().length >= 6) {
-      const { error: authError } = await supabase.auth.admin.updateUserById(id, {
-        password: password.trim(),
-        user_metadata: {
-          full_name: fullName.trim(),
-          employee_id: cleanEmpId,
-          role: role || 'employee',
-        },
-      });
+    // 2. Fetch existing user metadata to merge
+    const { data: userData } = await supabase.auth.admin.getUserById(id);
+    const existingMeta = userData?.user?.user_metadata || {};
 
-      if (authError) {
-        console.error('Failed to update employee password in Supabase auth:', authError);
-      }
+    const newMeta: Record<string, any> = {
+      ...existingMeta,
+      full_name: fullName.trim(),
+      employee_id: cleanEmpId,
+      role: role || 'employee',
+    };
+
+    const updateAuthPayload: Record<string, any> = {
+      user_metadata: newMeta,
+    };
+
+    if (password && typeof password === 'string' && password.trim().length >= 6) {
+      updateAuthPayload.password = password.trim();
+      newMeta.assigned_password = password.trim();
+    }
+
+    const { error: authError } = await supabase.auth.admin.updateUserById(id, updateAuthPayload);
+    if (authError) {
+      console.error('Failed to update employee in Supabase auth:', authError);
     }
 
     // 3. Update profiles table

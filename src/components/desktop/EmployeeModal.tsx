@@ -59,13 +59,18 @@ export function EmployeeModal({
   };
 
   const resolvedRole = (editingUser?.role || (editingUser as any)?.role || 'employee') as UserRole;
+  const existingPassword =
+    editingUser?.assignedPassword ||
+    (editingUser as any)?.assigned_password ||
+    (editingUser as any)?.password ||
+    '';
 
   const [fullName, setFullName] = useState(resolvedFullName);
   const [employeeId, setEmployeeId] = useState(resolvedEmployeeId);
   const [departmentId, setDepartmentId] = useState(getResolvedDeptId());
   const [designationId, setDesignationId] = useState(getResolvedDesigId());
   const [role, setRole] = useState<UserRole>(resolvedRole);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(existingPassword);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,7 +81,7 @@ export function EmployeeModal({
       setDepartmentId(getResolvedDeptId());
       setDesignationId(getResolvedDesigId());
       setRole(resolvedRole);
-      setPassword('');
+      setPassword(existingPassword);
       setShowPassword(false);
       setError(null);
     }
@@ -293,11 +298,11 @@ export function EmployeeModal({
               <p className="text-[10px] text-slate-400 mt-1">
                 {password
                   ? (showPassword
-                      ? 'New password is visible in plain text. Click eye to mask.'
-                      : 'New password entered. Click eye to view.')
+                      ? 'Current password is visible in plain text. Click eye to mask.'
+                      : 'Password is set and masked. Click eye icon to view.')
                   : (showPassword
-                      ? 'Existing password is encrypted for security. Type here to view and set a new password.'
-                      : 'Existing password is encrypted. Click eye or type to view / set a new password.')}
+                      ? 'Legacy password was stored as an irreversible cryptographic hash before tracking was enabled. Type a new password here to view and update it.'
+                      : 'Existing password is encrypted. Click eye to view or type to update.')}
               </p>
             )}
           </div>

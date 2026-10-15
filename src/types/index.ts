@@ -49,6 +49,7 @@ export interface UserProfile {
   designationTitle?: string;
   role: UserRole;
   isActive: boolean;
+  assignedPassword?: string;
   createdAt: string;
   updatedAt: string;
 }

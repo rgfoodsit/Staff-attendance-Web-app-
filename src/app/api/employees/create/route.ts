@@ -41,6 +41,7 @@ export async function POST(req: Request) {
         full_name: fullName.trim(),
         employee_id: cleanEmpId,
         role: role,
+        assigned_password: password,
       },
     });
 

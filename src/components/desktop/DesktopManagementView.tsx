@@ -350,6 +350,7 @@ export function DesktopManagementView({
             designationId: userData.designationId,
             designationTitle: userData.designationTitle,
             role: userData.role,
+            assignedPassword: userData.password || p.assignedPassword,
             updatedAt: new Date().toISOString(),
           };
         }
@@ -385,6 +386,7 @@ export function DesktopManagementView({
           alert('Employee account created, but could not load profile details.');
           return;
         }
+        newProfile.assignedPassword = userData.password;
 
         const cleanProfiles = (profiles || []).filter((p): p is UserProfile => Boolean(p && p.id));
         updatedProfiles = [newProfile, ...cleanProfiles.filter((p) => p.id !== newProfile.id)];
