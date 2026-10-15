@@ -200,7 +200,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <img
               src="/logo.png"
               alt="StaffTrack Logo"
-              className="w-9 h-9 rounded-xl object-contain shadow-xs"
+              className="w-9 h-9 object-contain drop-shadow-xs"
             />
             <div>
               <div className="font-extrabold text-lg tracking-tight text-slate-900 leading-none">

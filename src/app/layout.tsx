@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: "Role-based attendance tracking, live selfie & GPS verification, and workforce analytics with StaffTrack.",
   icons: {
     icon: "/icon.png",
-    apple: "/icon.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 

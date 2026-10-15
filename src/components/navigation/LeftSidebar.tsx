@@ -71,7 +71,7 @@ export function LeftSidebar({
             <img
               src="/logo.png"
               alt="StaffTrack Logo"
-              className="w-9 h-9 rounded-xl object-contain shadow-md shadow-red-500/20"
+              className="w-9 h-9 object-contain drop-shadow-md"
             />
           </div>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden pl-1.5">

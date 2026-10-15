@@ -207,7 +207,7 @@ export function EmployeeView({
             <img
               src="/logo.png"
               alt="StaffTrack"
-              className="w-8 h-8 rounded-xl object-contain shadow-md ring-1 ring-white/10"
+              className="w-8 h-8 object-contain drop-shadow-md"
             />
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-950" />
           </div>
