@@ -1455,6 +1455,7 @@ export function DesktopManagementView({
 
       {/* Employee Add/Edit Modal (Admin & HR) */}
       <EmployeeModal
+        key={editingEmployee?.id || (showEmployeeModal ? 'open-new' : 'closed')}
         isOpen={showEmployeeModal}
         onClose={() => {
           setShowEmployeeModal(false);

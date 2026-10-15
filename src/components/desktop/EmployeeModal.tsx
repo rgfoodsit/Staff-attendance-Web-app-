@@ -33,22 +33,49 @@ export function EmployeeModal({
   editingUser,
   onSave,
 }: EmployeeModalProps) {
-  const [fullName, setFullName] = useState(editingUser?.fullName || '');
-  const [employeeId, setEmployeeId] = useState(editingUser?.employeeId || '');
-  const [departmentId, setDepartmentId] = useState(editingUser?.departmentId || departments[0]?.id || '');
-  const [designationId, setDesignationId] = useState(editingUser?.designationId || designations[0]?.id || '');
-  const [role, setRole] = useState<UserRole>(editingUser?.role || 'employee');
+  const resolvedFullName = editingUser?.fullName || (editingUser as any)?.full_name || '';
+  const resolvedEmployeeId = editingUser?.employeeId || (editingUser as any)?.employee_id || '';
+
+  const getResolvedDeptId = () => {
+    const rawDeptId = editingUser?.departmentId || (editingUser as any)?.department_id;
+    const rawDeptName = editingUser?.departmentName || (editingUser as any)?.department_name;
+    const match = departments.find(
+      (d) =>
+        (rawDeptId && d.id === rawDeptId) ||
+        (rawDeptName && d.name.toLowerCase() === rawDeptName.toLowerCase())
+    );
+    return match?.id || rawDeptId || departments[0]?.id || '';
+  };
+
+  const getResolvedDesigId = () => {
+    const rawDesigId = editingUser?.designationId || (editingUser as any)?.designation_id;
+    const rawDesigTitle = editingUser?.designationTitle || (editingUser as any)?.designation_title;
+    const match = designations.find(
+      (d) =>
+        (rawDesigId && d.id === rawDesigId) ||
+        (rawDesigTitle && d.title.toLowerCase() === rawDesigTitle.toLowerCase())
+    );
+    return match?.id || rawDesigId || designations[0]?.id || '';
+  };
+
+  const resolvedRole = (editingUser?.role || (editingUser as any)?.role || 'employee') as UserRole;
+
+  const [fullName, setFullName] = useState(resolvedFullName);
+  const [employeeId, setEmployeeId] = useState(resolvedEmployeeId);
+  const [departmentId, setDepartmentId] = useState(getResolvedDeptId());
+  const [designationId, setDesignationId] = useState(getResolvedDesigId());
+  const [role, setRole] = useState<UserRole>(resolvedRole);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setFullName(editingUser?.fullName || '');
-      setEmployeeId(editingUser?.employeeId || '');
-      setDepartmentId(editingUser?.departmentId || departments[0]?.id || '');
-      setDesignationId(editingUser?.designationId || designations[0]?.id || '');
-      setRole(editingUser?.role || 'employee');
+      setFullName(resolvedFullName);
+      setEmployeeId(resolvedEmployeeId);
+      setDepartmentId(getResolvedDeptId());
+      setDesignationId(getResolvedDesigId());
+      setRole(resolvedRole);
       setPassword('');
       setShowPassword(false);
       setError(null);
@@ -99,11 +126,20 @@ export function EmployeeModal({
               {editingUser ? <UserCheck className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
             </div>
             <div>
-              <h3 className="font-semibold text-slate-900 dark:text-white">
-                {editingUser ? 'Edit Employee Account' : 'Add New Employee'}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-slate-900 dark:text-white">
+                  {editingUser ? 'Edit Employee Account' : 'Add New Employee'}
+                </h3>
+                {resolvedEmployeeId && (
+                  <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
+                    {resolvedEmployeeId}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-500">
-                {isAdmin ? 'Admin & Role Management' : 'HR Account Management'}
+                {editingUser
+                  ? `Editing account details for ${resolvedFullName || resolvedEmployeeId}`
+                  : (isAdmin ? 'Admin & Role Management' : 'HR Account Management')}
               </p>
             </div>
           </div>
