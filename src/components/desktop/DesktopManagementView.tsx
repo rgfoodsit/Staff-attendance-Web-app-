@@ -11,6 +11,7 @@ import {
   FileDown,
   Filter,
   Eye,
+  EyeOff,
   CheckCircle,
   XCircle,
   Settings,
@@ -100,6 +101,8 @@ export function DesktopManagementView({
   const [profileFullName, setProfileFullName] = useState(currentUser.fullName);
   const [profilePassword, setProfilePassword] = useState('');
   const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
+  const [showProfilePassword, setShowProfilePassword] = useState(false);
+  const [showProfileConfirmPassword, setShowProfileConfirmPassword] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
   const [profileErrorMsg, setProfileErrorMsg] = useState('');
 
@@ -1244,26 +1247,50 @@ export function DesktopManagementView({
                       <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                         New Password (optional)
                       </label>
-                      <input
-                        type="password"
-                        placeholder="Leave blank to keep current"
-                        value={profilePassword}
-                        onChange={(e) => setProfilePassword(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showProfilePassword ? 'text' : 'password'}
+                          placeholder="Leave blank to keep current"
+                          value={profilePassword}
+                          onChange={(e) => setProfilePassword(e.target.value)}
+                          className="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowProfilePassword(!showProfilePassword)}
+                          tabIndex={-1}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                          title={showProfilePassword ? 'Hide password' : 'View password'}
+                          aria-label={showProfilePassword ? 'Hide password' : 'View password'}
+                        >
+                          {showProfilePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
 
                     <div>
                       <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                         Confirm New Password
                       </label>
-                      <input
-                        type="password"
-                        placeholder="Confirm new password"
-                        value={profileConfirmPassword}
-                        onChange={(e) => setProfileConfirmPassword(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showProfileConfirmPassword ? 'text' : 'password'}
+                          placeholder="Confirm new password"
+                          value={profileConfirmPassword}
+                          onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                          className="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowProfileConfirmPassword(!showProfileConfirmPassword)}
+                          tabIndex={-1}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                          title={showProfileConfirmPassword ? 'Hide password' : 'View password'}
+                          aria-label={showProfileConfirmPassword ? 'Hide password' : 'View password'}
+                        >
+                          {showProfileConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
 

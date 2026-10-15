@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, ShieldCheck, UserCheck, Loader2 } from 'lucide-react';
+import { AlertCircle, ShieldCheck, UserCheck, Loader2, Eye, EyeOff } from 'lucide-react';
 import { UserProfile } from '@/types';
 import { AppStore } from '@/lib/app-store';
 
@@ -25,12 +25,14 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   // Sign-in Form (Empty defaults for deploy-ready production)
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Setup Super Admin Form (First run)
   const [setupFullName, setSetupFullName] = useState('');
   const [setupEmployeeId, setSetupEmployeeId] = useState('ADM-001');
   const [setupEmail, setSetupEmail] = useState('');
   const [setupPassword, setSetupPassword] = useState('');
+  const [showSetupPassword, setShowSetupPassword] = useState(false);
   const [setupDepartmentId, setSetupDepartmentId] = useState('');
   const [setupDesignationId, setSetupDesignationId] = useState('');
 
@@ -310,15 +312,27 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
                   Password (min 6 chars) *
                 </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={setupPassword}
-                  onChange={(e) => setSetupPassword(e.target.value)}
-                  placeholder="Create secure password"
-                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
-                />
+                <div className="relative">
+                  <input
+                    type={showSetupPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={setupPassword}
+                    onChange={(e) => setSetupPassword(e.target.value)}
+                    placeholder="Create secure password"
+                    className="w-full h-11 pl-3.5 pr-10 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSetupPassword(!showSetupPassword)}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    title={showSetupPassword ? 'Hide password' : 'View password'}
+                    aria-label={showSetupPassword ? 'Hide password' : 'View password'}
+                  >
+                    {showSetupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -378,14 +392,26 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
                   Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full h-11 pl-3.5 pr-10 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    title={showPassword ? 'Hide password' : 'View password'}
+                    aria-label={showPassword ? 'Hide password' : 'View password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button
