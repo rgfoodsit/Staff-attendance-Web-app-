@@ -429,29 +429,31 @@ export function DesktopManagementView({
             </p>
           </div>
 
-          {/* Action Buttons: Exports (Icon-only by default, reveals label on hover) */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={handleExportExcel}
-              title="Export Excel"
-              className="group/btn h-9 px-2.5 hover:px-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 rounded-xl text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all duration-200 flex items-center shadow-xs"
-            >
-              <FileSpreadsheet className="w-4 h-4 shrink-0" />
-              <span className="max-w-0 opacity-0 group-hover/btn:max-w-xs group-hover/btn:opacity-100 group-hover/btn:ml-1.5 overflow-hidden whitespace-nowrap transition-all duration-200">
-                Export Excel
-              </span>
-            </button>
-            <button
-              onClick={handleExportPDF}
-              title="Export PDF"
-              className="group/btn h-9 px-2.5 hover:px-3.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 rounded-xl text-xs font-semibold hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all duration-200 flex items-center shadow-xs"
-            >
-              <FileDown className="w-4 h-4 shrink-0" />
-              <span className="max-w-0 opacity-0 group-hover/btn:max-w-xs group-hover/btn:opacity-100 group-hover/btn:ml-1.5 overflow-hidden whitespace-nowrap transition-all duration-200">
-                Export PDF
-              </span>
-            </button>
-          </div>
+          {/* Action Buttons: Exports (Icon-only by default, reveals label on hover) - Only on Dashboard */}
+          {activeTab === 'dashboard' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleExportExcel}
+                title="Export Excel"
+                className="group/btn h-9 px-2.5 hover:px-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 rounded-xl text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all duration-200 flex items-center shadow-xs"
+              >
+                <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                <span className="max-w-0 opacity-0 group-hover/btn:max-w-xs group-hover/btn:opacity-100 group-hover/btn:ml-1.5 overflow-hidden whitespace-nowrap transition-all duration-200">
+                  Export Excel
+                </span>
+              </button>
+              <button
+                onClick={handleExportPDF}
+                title="Export PDF"
+                className="group/btn h-9 px-2.5 hover:px-3.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 rounded-xl text-xs font-semibold hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all duration-200 flex items-center shadow-xs"
+              >
+                <FileDown className="w-4 h-4 shrink-0" />
+                <span className="max-w-0 opacity-0 group-hover/btn:max-w-xs group-hover/btn:opacity-100 group-hover/btn:ml-1.5 overflow-hidden whitespace-nowrap transition-all duration-200">
+                  Export PDF
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
       {/* Tab: Dashboard */}
