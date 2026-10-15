@@ -32,7 +32,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. Create user in Supabase auth.users
+    // 2. Create or reuse user in Supabase auth.users
+    let userId: string | null = null;
+    let isNewlyCreated = false;
+
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: emailToUse,
       password: password,
@@ -45,32 +48,60 @@ export async function POST(req: Request) {
       },
     });
 
-    if (authError || !authData.user) {
-      return NextResponse.json(
-        { error: authError?.message || 'Failed to create user in authentication system.' },
-        { status: 500 }
+    if (authData?.user?.id) {
+      userId = authData.user.id;
+      isNewlyCreated = true;
+    } else {
+      // If user with this email or employee_id already exists in Supabase auth, link and update them
+      const { data: userList } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+      const existingUser = userList?.users?.find(
+        (u) =>
+          u.email?.toLowerCase() === emailToUse.toLowerCase() ||
+          u.user_metadata?.employee_id?.toLowerCase() === cleanEmpId.toLowerCase()
       );
+
+      if (existingUser) {
+        userId = existingUser.id;
+        await supabase.auth.admin.updateUserById(userId, {
+          password: password,
+          user_metadata: {
+            full_name: fullName.trim(),
+            employee_id: cleanEmpId,
+            role: role,
+            assigned_password: password,
+          },
+        });
+      } else {
+        return NextResponse.json(
+          { error: authError?.message || 'Failed to create user in authentication system.' },
+          { status: 500 }
+        );
+      }
     }
 
-    const userId = authData.user.id;
-
-    // 3. Insert into profiles table
+    // 3. Upsert into profiles table
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .insert({
-        id: userId,
-        employee_id: cleanEmpId,
-        full_name: fullName.trim(),
-        department_id: departmentId,
-        designation_id: designationId,
-        role: role,
-        is_active: true,
-      })
+      .upsert(
+        {
+          id: userId,
+          employee_id: cleanEmpId,
+          full_name: fullName.trim(),
+          department_id: departmentId,
+          designation_id: designationId,
+          role: role,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
       .select('*, departments:department_id(name), designations:designation_id(title)')
       .single();
 
     if (profileError) {
-      await supabase.auth.admin.deleteUser(userId);
+      if (isNewlyCreated) {
+        await supabase.auth.admin.deleteUser(userId);
+      }
       return NextResponse.json(
         { error: profileError.message || 'Failed to create employee profile record.' },
         { status: 500 }

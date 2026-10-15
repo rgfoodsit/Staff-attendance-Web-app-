@@ -17,9 +17,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { fullName, employeeId, email, password, departmentId, designationId } = body;
 
-    if (!fullName || !employeeId || !email || !password || !departmentId || !designationId) {
+    if (!fullName || !employeeId || !password || !departmentId || !designationId) {
       return NextResponse.json(
-        { error: 'All fields (Full Name, Employee ID, Email, Password, Department, Designation) are required.' },
+        { error: 'All required fields (Full Name, Employee ID, Password, Department, Designation) are required.' },
         { status: 400 }
       );
     }
@@ -31,39 +31,68 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Create auth user in Supabase auth.users
+    const cleanEmpId = employeeId.trim();
+    const emailToUse = (email && typeof email === 'string' && email.trim())
+      ? email.trim().toLowerCase()
+      : `${cleanEmpId.toLowerCase().replace(/[^a-z0-9]/g, '')}@company.local`;
+
+    // 1. Create or retrieve auth user in Supabase auth.users
+    let userId: string | null = null;
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: email.trim().toLowerCase(),
+      email: emailToUse,
       password: password,
       email_confirm: true,
       user_metadata: {
         full_name: fullName.trim(),
-        employee_id: employeeId.trim(),
+        employee_id: cleanEmpId,
         role: 'admin',
       },
     });
 
-    if (authError || !authData.user) {
-      return NextResponse.json(
-        { error: authError?.message || 'Failed to create auth user in Supabase.' },
-        { status: 500 }
+    if (authData?.user?.id) {
+      userId = authData.user.id;
+    } else {
+      // If user with this email or employee ID already exists in auth.users, recover and reuse
+      const { data: userList } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+      const existingUser = userList?.users?.find(
+        (u) =>
+          u.email?.toLowerCase() === emailToUse.toLowerCase() ||
+          u.user_metadata?.employee_id?.toLowerCase() === cleanEmpId.toLowerCase()
       );
+      if (existingUser) {
+        userId = existingUser.id;
+        await supabase.auth.admin.updateUserById(userId, {
+          password: password,
+          user_metadata: {
+            full_name: fullName.trim(),
+            employee_id: cleanEmpId,
+            role: 'admin',
+          },
+        });
+      } else {
+        return NextResponse.json(
+          { error: authError?.message || 'Failed to setup admin user in authentication.' },
+          { status: 500 }
+        );
+      }
     }
 
-    const userId = authData.user.id;
-
-    // 2. Insert into profiles table
+    // 2. Upsert into profiles table
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .insert({
-        id: userId,
-        employee_id: employeeId.trim(),
-        full_name: fullName.trim(),
-        department_id: departmentId,
-        designation_id: designationId,
-        role: 'admin',
-        is_active: true,
-      })
+      .upsert(
+        {
+          id: userId,
+          employee_id: cleanEmpId,
+          full_name: fullName.trim(),
+          department_id: departmentId,
+          designation_id: designationId,
+          role: 'admin',
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
       .select('*, departments:department_id(name), designations:designation_id(title)')
       .single();
 

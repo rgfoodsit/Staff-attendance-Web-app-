@@ -30,7 +30,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   // Setup Super Admin Form (First run)
   const [setupFullName, setSetupFullName] = useState('');
   const [setupEmployeeId, setSetupEmployeeId] = useState('ADM-001');
-  const [setupEmail, setSetupEmail] = useState('');
   const [setupPassword, setSetupPassword] = useState('');
   const [showSetupPassword, setShowSetupPassword] = useState(false);
   const [setupDepartmentId, setSetupDepartmentId] = useState('');
@@ -136,11 +135,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       setIsLoading(false);
       return;
     }
-    if (!setupEmail.trim()) {
-      setError('Official Work Email is required.');
-      setIsLoading(false);
-      return;
-    }
     if (!setupPassword || setupPassword.length < 6) {
       setError('Password must be at least 6 characters.');
       setIsLoading(false);
@@ -154,7 +148,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         body: JSON.stringify({
           fullName: setupFullName.trim(),
           employeeId: setupEmployeeId.trim().toUpperCase(),
-          email: setupEmail.trim().toLowerCase(),
           password: setupPassword,
           departmentId: setupDepartmentId || undefined,
           designationId: setupDesignationId || undefined,
@@ -292,20 +285,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  Official Work Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={setupEmail}
-                  onChange={(e) => setSetupEmail(e.target.value)}
-                  placeholder="admin@yourcompany.com"
-                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
-                />
               </div>
 
               <div>
