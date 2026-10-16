@@ -21,7 +21,6 @@ import { UserProfile, UserRole, InAppNotification } from '@/types';
 
 interface LeftSidebarProps {
   currentUser: UserProfile;
-  onRoleChange?: (role: UserRole) => void;
   notifications: InAppNotification[];
   onNotificationsRead: () => void;
   onLogout: () => void;
@@ -32,7 +31,6 @@ interface LeftSidebarProps {
 
 export function LeftSidebar({
   currentUser,
-  onRoleChange,
   notifications,
   onNotificationsRead,
   onLogout,
@@ -339,45 +337,6 @@ export function LeftSidebar({
                 </div>
               )}
             </div>
-
-            {/* Quick Switch Role (Isolated to this tab) */}
-            {onRoleChange && (
-              <div className="pt-2 border-t border-slate-800 space-y-1.5">
-                <div className="text-[10px] uppercase font-bold text-slate-400 px-1 tracking-wider">
-                  Switch Role View (This Tab)
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    onClick={() => {
-                      onRoleChange('admin');
-                      setShowProfileMenu(false);
-                    }}
-                    className={`px-2 py-1.5 text-xs rounded-xl font-medium transition text-left flex items-center gap-1.5 cursor-pointer ${
-                      currentUser.role === 'admin'
-                        ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
-                        : 'text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Admin</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      onRoleChange('hr');
-                      setShowProfileMenu(false);
-                    }}
-                    className={`px-2 py-1.5 text-xs rounded-xl font-medium transition text-left flex items-center gap-1.5 cursor-pointer ${
-                      currentUser.role === 'hr'
-                        ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
-                        : 'text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <Users className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>HR</span>
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Logout Action */}
             <div className="pt-2 border-t border-slate-800">

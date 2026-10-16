@@ -250,7 +250,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   required
                   value={setupFullName}
                   onChange={(e) => setSetupFullName(e.target.value)}
-                  placeholder="e.g. Alex Morgan"
+                  placeholder="Enter full name"
                   className="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition"
                 />
               </div>

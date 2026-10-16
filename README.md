@@ -38,15 +38,15 @@ A role-based attendance management and workforce intelligence system built stric
 
 ---
 
-## 👥 Demo Roles (Instant Role Switcher)
-
-Switch effortlessly between any role via the user dropdown at the top right:
-
-| Role | Demo User | Permissions |
+## 👥 Role-Based Access Control
+ 
+Authentication is strictly enforced via Employee ID and password against Supabase:
+ 
+| Role | Portal Experience | Capabilities |
 |---|---|---|
-| **Employee** | Alex Morgan (`EMP-1001`) | Mobile check-in/out, live selfie/GPS, daily work report, leave, own history |
-| **HR** | Elena Rostova (`HR-3001`) | Timing rules configuration, approve all corrections, direct adjustments, mark absent, exports |
-| **Admin** | Admin Superuser (`ADM-0001`) | Department/designation master management, profile management, full audit trail |
+| **Employee** | Dedicated Full-Screen Mobile Web (`/`) | Live camera selfie verification, high-accuracy GPS capture, one check-in / check-out daily, leave marking, work reports, correction requests |
+| **HR** | Management Desktop Web (`/`) | Real-time workforce KPIs, attendance evidence inspection (selfies + GPS map), timing rules configuration, correction approval, direct adjustments, Excel/PDF exports |
+| **Admin** | Management Desktop Web (`/`) | Employee profile provisioning, department & designation master data management, full audit trail access |
 
 ---
 

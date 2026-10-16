@@ -33,7 +33,6 @@ export default function Home() {
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => AppStore.getAuditLogs());
   const [settings, setSettings] = useState<AttendanceSettings>(() => AppStore.getSettings());
-  const [isMobilePreview, setIsMobilePreview] = useState(false);
   const [desktopActiveTab, setDesktopActiveTab] = useState<'dashboard' | 'employees' | 'corrections' | 'reports' | 'masters' | 'audit' | 'settings' | 'profile'>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -150,7 +149,6 @@ export default function Home() {
 
     setCurrentUser(sessionUser);
     setIsAuthenticated(true);
-    setIsMobilePreview(sessionUser.role === 'employee');
 
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -375,19 +373,6 @@ export default function Home() {
       window.removeEventListener('focus', checkDayRollover);
     };
   }, [currentDateStr]);
-
-  const handleRoleChange = (role: UserRole) => {
-    const switchedUser = AppStore.switchRole(role);
-    if (!switchedUser || !AppStore.isValidUser(switchedUser)) return;
-    setCurrentUser(switchedUser);
-    setNotifications(AppStore.getNotifications(switchedUser.id));
-    setIsMobilePreview(role === 'employee');
-    if (role === 'employee') {
-      handleEmployeeTabChange('home');
-    } else {
-      handleDesktopTabChange('dashboard');
-    }
-  };
 
   const handleLogout = () => {
     AppStore.logout();
@@ -727,7 +712,6 @@ export default function Home() {
         onLoginSuccess={(user) => {
           setIsAuthenticated(true);
           setCurrentUser(user);
-          setIsMobilePreview(user.role === 'employee');
           if (user.role === 'employee') {
             handleEmployeeTabChange('home');
           } else {
@@ -786,7 +770,6 @@ export default function Home() {
           <div className="hidden md:block">
             <LeftSidebar
               currentUser={currentUser}
-              onRoleChange={handleRoleChange}
               notifications={notifications}
               onNotificationsRead={handleNotificationsRead}
               onLogout={handleLogout}

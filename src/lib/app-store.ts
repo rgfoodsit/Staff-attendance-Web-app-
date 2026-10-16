@@ -46,7 +46,7 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'staff_app_audit_logs',
 };
 
-const CURRENT_APP_VERSION = 'v8_strict_auth_no_guests';
+const CURRENT_APP_VERSION = 'v9_production_clean';
 
 export class AppStore {
   private static isClient = typeof window !== 'undefined';
@@ -209,18 +209,6 @@ export class AppStore {
     }
   }
 
-  static switchRole(role: UserRole): UserProfile | null {
-    const profiles = this.getProfiles();
-    const user = profiles.find((p) => this.isValidUser(p) && p.role === role);
-    if (user) {
-      this.setCurrentUser(user);
-      return user;
-    }
-    const current = this.getCurrentUser();
-    if (current && current.role === role) return current;
-    return null;
-  }
-
   // Masters
   static getDepartments(): Department[] {
     const raw = this.getItem<Department[]>(STORAGE_KEYS.DEPARTMENTS, DEFAULT_DEPARTMENTS);
@@ -295,7 +283,7 @@ export class AppStore {
   static getAttendanceRecords(): AttendanceRecord[] {
     const raw = this.getItem<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE, []);
     const records = Array.isArray(raw)
-      ? raw.filter((r): r is AttendanceRecord => Boolean(r && typeof r === 'object' && r.id))
+      ? raw.filter((r): r is AttendanceRecord => Boolean(r && typeof r === 'object' && r.id && r.id !== 'att-1'))
       : [];
     const today = getLocalDateString();
     let hasChanges = false;
@@ -303,26 +291,10 @@ export class AppStore {
     // Auto-rollover previous days: if an employee checked in on a previous day and never checked out,
     // transition status from active 'checked_in' / 'late' to 'forgotten_checkout' so past days don't interfere with today's fresh session.
     const updated = records.map((r) => {
-      // 1. Sanitize the legacy mock att-1 record if it got saved with today's date
-      if (r.id === 'att-1' && r.checkinTime && r.checkinTime.includes('09:08:24') && r.attendanceDate === today) {
-        hasChanges = true;
-        const past = new Date();
-        past.setDate(past.getDate() - 1);
-        const yStr = `${past.getFullYear()}-${String(past.getMonth() + 1).padStart(2, '0')}-${String(past.getDate()).padStart(2, '0')}`;
-        return {
-          ...r,
-          attendanceDate: yStr,
-          status: 'checked_out' as const,
-          checkoutTime: `${yStr}T18:05:00.000Z`,
-          effectiveCheckoutTime: `${yStr}T18:05:00.000Z`,
-          workingDurationMinutes: 540,
-        };
-      }
-
       const checkinDateStr = r.checkinTime ? getLocalDateString(new Date(r.effectiveCheckinTime || r.checkinTime)) : r.attendanceDate;
       const isPastDay = r.attendanceDate < today || checkinDateStr < today;
 
-      // 2. Unclosed past-day check-in: auto close as "forgotten_checkout"
+      // 1. Unclosed past-day check-in: auto close as "forgotten_checkout"
       if (isPastDay && r.checkinTime && !r.checkoutTime) {
         if (r.status !== 'forgotten_checkout') {
           hasChanges = true;
