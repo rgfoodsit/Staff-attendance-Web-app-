@@ -56,6 +56,10 @@ export function LiveAttendanceModal({
   const startCamera = async () => {
     try {
       setErrorMsg(null);
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setErrorMsg('Camera access is not supported by this browser. Please use Chrome or enable camera permissions.');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
