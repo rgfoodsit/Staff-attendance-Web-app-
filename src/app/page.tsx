@@ -330,6 +330,16 @@ export default function Home() {
           AppStore.saveCorrections(corrData.corrections);
         }
       }
+
+      // Sync Real Daily Work Reports
+      const repRes = await fetch('/api/attendance/reports');
+      if (repRes.ok) {
+        const repData = await repRes.json();
+        if (repData.reports && Array.isArray(repData.reports)) {
+          setDailyReports(repData.reports);
+          AppStore.saveDailyReports(repData.reports);
+        }
+      }
     } catch (err) {
       console.warn('Supabase live sync notice:', err);
     }
@@ -547,10 +557,35 @@ export default function Home() {
     }
   };
 
-  const handleSaveWorkReport = (text: string) => {
+  const handleSaveWorkReport = async (text: string) => {
     if (!currentUser) return;
     AppStore.saveTodayWorkReport(currentUser, text);
     refreshState();
+
+    try {
+      const res = await fetch('/api/attendance/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileId: currentUser.id,
+          reportText: text,
+          reportDate: currentDateStr,
+        }),
+      });
+
+      if (res.ok) {
+        const repRes = await fetch('/api/attendance/reports');
+        if (repRes.ok) {
+          const repData = await repRes.json();
+          if (repData.reports) {
+            setDailyReports(repData.reports);
+            AppStore.saveDailyReports(repData.reports);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Backend work report save notice:', err);
+    }
   };
 
   const handleSubmitCorrection = async (data: any) => {

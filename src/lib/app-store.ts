@@ -626,6 +626,11 @@ export class AppStore {
     return raw.filter((r): r is DailyWorkReport => Boolean(r && typeof r === 'object' && r.id));
   }
 
+  static saveDailyReports(reports: DailyWorkReport[]): void {
+    if (!Array.isArray(reports)) return;
+    this.setItem(STORAGE_KEYS.DAILY_REPORTS, reports);
+  }
+
   static getTodayWorkReport(profileId: string): DailyWorkReport | undefined {
     const today = getLocalDateString();
     const reports = this.getDailyReports();
