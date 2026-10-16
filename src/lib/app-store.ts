@@ -46,25 +46,30 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'staff_app_audit_logs',
 };
 
-const CURRENT_APP_VERSION = 'v7_tab_isolated_sessions';
-
-const EMPTY_USER: UserProfile = {
-  id: '',
-  employeeId: '',
-  fullName: 'Guest',
-  departmentId: '',
-  departmentName: '',
-  designationId: '',
-  designationTitle: '',
-  role: 'employee',
-  isActive: false,
-  createdAt: '',
-  updatedAt: '',
-};
+const CURRENT_APP_VERSION = 'v8_strict_auth_no_guests';
 
 export class AppStore {
   private static isClient = typeof window !== 'undefined';
   private static initialized = false;
+
+  static isValidUser(user: any): user is UserProfile {
+    return Boolean(
+      user &&
+      typeof user === 'object' &&
+      typeof user.id === 'string' &&
+      user.id.trim().length > 0 &&
+      !String(user.id).startsWith('user-') &&
+      user.fullName &&
+      user.fullName !== 'Guest' &&
+      typeof user.fullName === 'string' &&
+      user.fullName.trim().length > 0 &&
+      user.employeeId &&
+      user.employeeId !== 'EMP' &&
+      typeof user.employeeId === 'string' &&
+      user.employeeId.trim().length > 0 &&
+      ['employee', 'hr', 'admin'].includes(user.role)
+    );
+  }
 
   private static checkVersion(): void {
     if (!this.isClient || this.initialized) return;
@@ -80,19 +85,7 @@ export class AppStore {
         localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS);
         localStorage.removeItem(STORAGE_KEYS.DEPARTMENTS);
         localStorage.removeItem(STORAGE_KEYS.DESIGNATIONS);
-
-        // Sanitize legacy mock session if stored (e.g. user-hr-1, user-admin-1, user-emp-1)
-        const rawUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-        if (rawUser) {
-          try {
-            const parsedUser = JSON.parse(rawUser);
-            if (!parsedUser || !parsedUser.id || String(parsedUser.id).startsWith('user-')) {
-              localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-            }
-          } catch {
-            localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-          }
-        }
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
 
         try {
           sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
@@ -103,6 +96,24 @@ export class AppStore {
     } catch {
       // ignore
     }
+
+    // Proactively purge any invalid, guest, or mock sessions
+    try {
+      const rawUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        if (!this.isValidUser(parsed)) {
+          localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        }
+      }
+      const rawSess = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (rawSess) {
+        const parsedSess = JSON.parse(rawSess);
+        if (!this.isValidUser(parsedSess)) {
+          sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        }
+      }
+    } catch {}
   }
 
   private static getItem<T>(key: string, fallback: T): T {
@@ -126,61 +137,46 @@ export class AppStore {
     }
   }
 
-  // Current User Session (Tab-Isolated via sessionStorage, with localStorage fallback)
-  static getCurrentUser(): UserProfile {
-    // 1. Check tab-isolated sessionStorage first so different tabs/windows maintain independent logins
+  // Current User Session (Strictly verified real accounts only)
+  static getCurrentUser(): UserProfile | null {
+    // 1. Check tab-isolated sessionStorage first
     if (this.isClient) {
       try {
         const sess = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
         if (sess) {
           const user = JSON.parse(sess);
-          if (user && typeof user === 'object' && user.role && ['employee', 'hr', 'admin'].includes(user.role)) {
+          if (this.isValidUser(user)) {
             return user;
+          } else {
+            sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
           }
         }
       } catch {}
     }
 
-    // 2. Fall back to localStorage (e.g. initial window/tab open)
+    // 2. Fall back to localStorage
     const user = this.getItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
-    if (!user || typeof user !== 'object' || !user.role || !['employee', 'hr', 'admin'].includes(user.role)) {
-      return EMPTY_USER;
+    if (this.isValidUser(user)) {
+      if (this.isClient) {
+        try {
+          sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+        } catch {}
+      }
+      return user;
     }
 
-    // Seed this tab's sessionStorage with the restored user
+    // If an invalid session or guest was found in localStorage, purge it
     if (this.isClient) {
       try {
-        sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
       } catch {}
     }
-    return user;
+
+    return null;
   }
 
   static getSessionUser(): UserProfile | null {
-    if (!this.isClient) return null;
-
-    // 1. Check tab-isolated sessionStorage first (keeps HR in Tab 1, Admin in Tab 2 completely independent)
-    try {
-      const sess = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-      if (sess) {
-        const user = JSON.parse(sess);
-        if (user && typeof user === 'object' && user.role && ['employee', 'hr', 'admin'].includes(user.role)) {
-          return user;
-        }
-      }
-    } catch {}
-
-    // 2. Fall back to localStorage (first launch of a tab)
-    const user = this.getItem<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null);
-    if (!user || typeof user !== 'object' || !user.role || !['employee', 'hr', 'admin'].includes(user.role)) {
-      return null;
-    }
-
-    // Seed this tab's sessionStorage
-    try {
-      sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-    } catch {}
-    return user;
+    return this.getCurrentUser();
   }
 
   static setCurrentUser(user: UserProfile): void {
@@ -213,16 +209,16 @@ export class AppStore {
     }
   }
 
-  static switchRole(role: UserRole): UserProfile {
+  static switchRole(role: UserRole): UserProfile | null {
     const profiles = this.getProfiles();
-    const user = profiles.find((p) => p && p.role === role);
+    const user = profiles.find((p) => this.isValidUser(p) && p.role === role);
     if (user) {
       this.setCurrentUser(user);
       return user;
     }
     const current = this.getCurrentUser();
     if (current && current.role === role) return current;
-    return EMPTY_USER;
+    return null;
   }
 
   // Masters

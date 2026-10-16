@@ -22,7 +22,7 @@ import { Smartphone, Laptop, AlertCircle } from 'lucide-react';
 import { getLocalDateString } from '@/lib/utils';
 
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState<UserProfile>(AppStore.getCurrentUser());
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => AppStore.getCurrentUser());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [profiles, setProfiles] = useState<UserProfile[]>(() => AppStore.getProfiles());
   const [departments, setDepartments] = useState<Department[]>(() => AppStore.getDepartments());
@@ -118,6 +118,11 @@ export default function Home() {
   // Load all initial state
   const refreshState = () => {
     const user = AppStore.getCurrentUser();
+    if (!user || !AppStore.isValidUser(user)) {
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+      return;
+    }
     setCurrentUser(user);
     setProfiles(AppStore.getProfiles());
     setDepartments(AppStore.getDepartments());
@@ -133,68 +138,62 @@ export default function Home() {
   useEffect(() => {
     let sessionUser = AppStore.getSessionUser();
 
-    // Check if a specific role is pinned via URL query parameter (e.g. ?role=admin or ?role=hr)
-    if (typeof window !== 'undefined') {
-      const urlRole = new URLSearchParams(window.location.search).get('role') as UserRole | null;
-      if (urlRole && ['admin', 'hr', 'employee'].includes(urlRole)) {
-        if (!sessionUser || sessionUser.role !== urlRole) {
-          const switched = AppStore.switchRole(urlRole);
-          if (switched && switched.id) {
-            sessionUser = switched;
-          }
-        }
-      }
-    }
-
-    if (sessionUser) {
-      setCurrentUser(sessionUser);
-      setIsAuthenticated(true);
-      setIsMobilePreview(sessionUser.role === 'employee');
-
-      if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlTab = urlParams.get('tab');
-
-        if (sessionUser.role === 'employee') {
-          const savedEmpTab = (sessionStorage.getItem('staff_app_employee_tab') || localStorage.getItem('staff_app_employee_tab')) as any;
-          let initialTab: 'home' | 'history' | 'profile' = 'home';
-          if (urlTab && (EMPLOYEE_TABS as readonly string[]).includes(urlTab)) {
-            initialTab = urlTab as 'home' | 'history' | 'profile';
-          } else if (savedEmpTab && (EMPLOYEE_TABS as readonly string[]).includes(savedEmpTab)) {
-            initialTab = savedEmpTab;
-          }
-          setEmployeeActiveTab(initialTab);
-          updateUrlTab(initialTab);
-          try {
-            sessionStorage.setItem('staff_app_employee_tab', initialTab);
-            localStorage.setItem('staff_app_employee_tab', initialTab);
-          } catch {}
-        } else {
-          const savedDeskTab = (sessionStorage.getItem('staff_app_desktop_tab') || localStorage.getItem('staff_app_desktop_tab')) as any;
-          let candidate: any = 'dashboard';
-          if (urlTab && (DESKTOP_TABS as readonly string[]).includes(urlTab)) {
-            candidate = urlTab;
-          } else if (savedDeskTab && (DESKTOP_TABS as readonly string[]).includes(savedDeskTab)) {
-            candidate = savedDeskTab;
-          }
-
-          if (candidate === 'masters' && sessionUser.role !== 'admin') {
-            candidate = 'dashboard';
-          } else if (candidate === 'settings' && sessionUser.role !== 'hr' && sessionUser.role !== 'admin') {
-            candidate = 'dashboard';
-          }
-
-          setDesktopActiveTab(candidate);
-          updateUrlTab(candidate);
-          try {
-            sessionStorage.setItem('staff_app_desktop_tab', candidate);
-            localStorage.setItem('staff_app_desktop_tab', candidate);
-          } catch {}
-        }
-      }
-    } else {
+    // Strictly enforce real authenticated users: no guests allowed
+    if (!sessionUser || !AppStore.isValidUser(sessionUser)) {
+      AppStore.logout();
+      sessionUser = null;
+      setCurrentUser(null);
       setIsAuthenticated(false);
+      setMounted(true);
+      return;
     }
+
+    setCurrentUser(sessionUser);
+    setIsAuthenticated(true);
+    setIsMobilePreview(sessionUser.role === 'employee');
+
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTab = urlParams.get('tab');
+
+      if (sessionUser.role === 'employee') {
+        const savedEmpTab = (sessionStorage.getItem('staff_app_employee_tab') || localStorage.getItem('staff_app_employee_tab')) as any;
+        let initialTab: 'home' | 'history' | 'profile' = 'home';
+        if (urlTab && (EMPLOYEE_TABS as readonly string[]).includes(urlTab)) {
+          initialTab = urlTab as 'home' | 'history' | 'profile';
+        } else if (savedEmpTab && (EMPLOYEE_TABS as readonly string[]).includes(savedEmpTab)) {
+          initialTab = savedEmpTab;
+        }
+        setEmployeeActiveTab(initialTab);
+        updateUrlTab(initialTab);
+        try {
+          sessionStorage.setItem('staff_app_employee_tab', initialTab);
+          localStorage.setItem('staff_app_employee_tab', initialTab);
+        } catch {}
+      } else {
+        const savedDeskTab = (sessionStorage.getItem('staff_app_desktop_tab') || localStorage.getItem('staff_app_desktop_tab')) as any;
+        let candidate: any = 'dashboard';
+        if (urlTab && (DESKTOP_TABS as readonly string[]).includes(urlTab)) {
+          candidate = urlTab;
+        } else if (savedDeskTab && (DESKTOP_TABS as readonly string[]).includes(savedDeskTab)) {
+          candidate = savedDeskTab;
+        }
+
+        if (candidate === 'masters' && sessionUser.role !== 'admin') {
+          candidate = 'dashboard';
+        } else if (candidate === 'settings' && sessionUser.role !== 'hr' && sessionUser.role !== 'admin') {
+          candidate = 'dashboard';
+        }
+
+        setDesktopActiveTab(candidate);
+        updateUrlTab(candidate);
+        try {
+          sessionStorage.setItem('staff_app_desktop_tab', candidate);
+          localStorage.setItem('staff_app_desktop_tab', candidate);
+        } catch {}
+      }
+    }
+
     refreshState();
     setMounted(true);
 
@@ -205,7 +204,7 @@ export default function Home() {
   // Browser back/forward navigation sync
   useEffect(() => {
     const handlePopState = () => {
-      if (typeof window === 'undefined') return;
+      if (typeof window === 'undefined' || !currentUser) return;
       const urlTab = new URLSearchParams(window.location.search).get('tab');
       if (!urlTab) return;
       if (currentUser.role === 'employee') {
@@ -231,7 +230,7 @@ export default function Home() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [currentUser.role]);
+  }, [currentUser?.role]);
 
   async function syncSupabase() {
     try {
@@ -295,18 +294,18 @@ export default function Home() {
 
             // Reconcile and keep currentUser in exact sync with live database truth
             const stored = AppStore.getSessionUser();
-            if (stored) {
+            if (stored && AppStore.isValidUser(stored)) {
               const liveUser = valid.find(
                 (p: any) => p.id === stored.id || (p.employeeId && p.employeeId.toUpperCase() === stored.employeeId?.toUpperCase())
               );
-              if (liveUser) {
+              if (liveUser && AppStore.isValidUser(liveUser)) {
                 setCurrentUser(liveUser);
                 AppStore.setCurrentUser(liveUser);
-              } else if (String(stored.id).startsWith('user-')) {
-                // If stored user was an old deleted mock user, cleanly log out
-                AppStore.logout();
-                setIsAuthenticated(false);
+              } else {
+                handleLogout();
               }
+            } else {
+              handleLogout();
             }
           }
         }
@@ -369,6 +368,7 @@ export default function Home() {
 
   const handleRoleChange = (role: UserRole) => {
     const switchedUser = AppStore.switchRole(role);
+    if (!switchedUser || !AppStore.isValidUser(switchedUser)) return;
     setCurrentUser(switchedUser);
     setNotifications(AppStore.getNotifications(switchedUser.id));
     setIsMobilePreview(role === 'employee');
@@ -383,8 +383,8 @@ export default function Home() {
     AppStore.logout();
     if (typeof window !== 'undefined') {
       try {
-        sessionStorage.removeItem('staff_app_desktop_tab');
-        sessionStorage.removeItem('staff_app_employee_tab');
+        sessionStorage.clear();
+        localStorage.removeItem('staff_app_current_user');
         localStorage.removeItem('staff_app_desktop_tab');
         localStorage.removeItem('staff_app_employee_tab');
         const url = new URL(window.location.href);
@@ -393,10 +393,12 @@ export default function Home() {
         window.history.replaceState(null, '', url.pathname);
       } catch {}
     }
+    setCurrentUser(null);
     setIsAuthenticated(false);
   };
 
   const handleCheckIn = async (data: { selfieUrl: string; latitude: number; longitude: number; locationName: string }) => {
+    if (!currentUser) return;
     try {
       let finalSelfieUrl = data.selfieUrl;
       try {
@@ -449,6 +451,7 @@ export default function Home() {
   };
 
   const handleCheckOut = async (data: { selfieUrl: string; latitude: number; longitude: number; locationName: string }) => {
+    if (!currentUser) return;
     try {
       let finalSelfieUrl = data.selfieUrl;
       try {
@@ -501,6 +504,7 @@ export default function Home() {
   };
 
   const handleMarkLeave = async (data: { isHalfDay: boolean; halfType?: 'first_half' | 'second_half'; reason: string; comment?: string }) => {
+    if (!currentUser) return;
     try {
       // 1. Persist to Supabase
       const res = await fetch('/api/attendance/leave', {
@@ -544,11 +548,13 @@ export default function Home() {
   };
 
   const handleSaveWorkReport = (text: string) => {
+    if (!currentUser) return;
     AppStore.saveTodayWorkReport(currentUser, text);
     refreshState();
   };
 
   const handleSubmitCorrection = async (data: any) => {
+    if (!currentUser) return;
     const record = attendanceRecords.find((r) => r.id === data.attendanceId);
     const localCorr = AppStore.submitCorrection({
       attendanceId: data.attendanceId,
@@ -600,6 +606,7 @@ export default function Home() {
   };
 
   const handleReviewCorrection = async (correctionId: string, status: 'approved' | 'rejected', remarks?: string) => {
+    if (!currentUser) return;
     AppStore.reviewCorrection({
       correctionId,
       reviewer: currentUser,
@@ -647,6 +654,7 @@ export default function Home() {
   };
 
   const handleHrAdjust = (data: any) => {
+    if (!currentUser) return;
     AppStore.hrAdjustAttendance({
       attendanceId: data.attendanceId,
       newStatus: data.newStatus,
@@ -659,11 +667,13 @@ export default function Home() {
   };
 
   const handleUpdateSettings = (newSettings: Partial<AttendanceSettings>) => {
+    if (!currentUser) return;
     AppStore.updateSettings(newSettings, currentUser);
     refreshState();
   };
 
   const handleNotificationsRead = () => {
+    if (!currentUser) return;
     AppStore.markNotificationsRead(currentUser.id);
     refreshState();
   };
@@ -676,7 +686,7 @@ export default function Home() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !currentUser || !AppStore.isValidUser(currentUser)) {
     return (
       <LoginPage
         onLoginSuccess={(user) => {
