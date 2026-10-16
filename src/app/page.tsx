@@ -36,32 +36,46 @@ export default function Home() {
   const [isMobilePreview, setIsMobilePreview] = useState(false);
   const [desktopActiveTab, setDesktopActiveTab] = useState<'dashboard' | 'employees' | 'corrections' | 'reports' | 'masters' | 'audit' | 'settings' | 'profile'>(() => {
     if (typeof window !== 'undefined') {
-      const urlTab = new URLSearchParams(window.location.search).get('tab');
-      if (urlTab && (['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as string[]).includes(urlTab)) {
-        return urlTab as any;
-      }
-      const saved = sessionStorage.getItem('staff_app_desktop_tab') || localStorage.getItem('staff_app_desktop_tab');
-      if (saved && (['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as string[]).includes(saved)) {
-        return saved as any;
+      try {
+        const urlTab = new URLSearchParams(window.location.search).get('tab');
+        if (urlTab && (['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as string[]).includes(urlTab)) {
+          return urlTab as any;
+        }
+        const saved = sessionStorage.getItem('staff_app_desktop_tab') || localStorage.getItem('staff_app_desktop_tab');
+        if (saved && (['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as string[]).includes(saved)) {
+          return saved as any;
+        }
+      } catch {
+        // storage disabled or restricted
       }
     }
     return 'dashboard';
   });
   const [employeeActiveTab, setEmployeeActiveTab] = useState<'home' | 'history' | 'profile'>(() => {
     if (typeof window !== 'undefined') {
-      const urlTab = new URLSearchParams(window.location.search).get('tab');
-      if (urlTab && ['home', 'history', 'profile'].includes(urlTab)) {
-        return urlTab as 'home' | 'history' | 'profile';
-      }
-      const saved = sessionStorage.getItem('staff_app_employee_tab') || localStorage.getItem('staff_app_employee_tab');
-      if (saved && ['home', 'history', 'profile'].includes(saved)) {
-        return saved as 'home' | 'history' | 'profile';
+      try {
+        const urlTab = new URLSearchParams(window.location.search).get('tab');
+        if (urlTab && ['home', 'history', 'profile'].includes(urlTab)) {
+          return urlTab as 'home' | 'history' | 'profile';
+        }
+        const saved = sessionStorage.getItem('staff_app_employee_tab') || localStorage.getItem('staff_app_employee_tab');
+        if (saved && ['home', 'history', 'profile'].includes(saved)) {
+          return saved as 'home' | 'history' | 'profile';
+        }
+      } catch {
+        // storage disabled or restricted
       }
     }
     return 'home';
   });
   const [mounted, setMounted] = useState(false);
-  const [currentDateStr, setCurrentDateStr] = useState<string>(getLocalDateString());
+  const [currentDateStr, setCurrentDateStr] = useState<string>(() => {
+    try {
+      return getLocalDateString();
+    } catch {
+      return new Date().toISOString().split('T')[0];
+    }
+  });
 
   const DESKTOP_TABS = ['dashboard', 'employees', 'corrections', 'reports', 'masters', 'audit', 'settings', 'profile'] as const;
   const EMPLOYEE_TABS = ['home', 'history', 'profile'] as const;

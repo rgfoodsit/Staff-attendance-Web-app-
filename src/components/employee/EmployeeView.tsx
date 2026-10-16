@@ -82,14 +82,16 @@ export function EmployeeView({
 
   const [internalTab, setInternalTab] = useState<'home' | 'history' | 'profile'>(() => {
     if (typeof window !== 'undefined') {
-      const urlTab = new URLSearchParams(window.location.search).get('tab');
-      if (urlTab === 'history' || urlTab === 'profile' || urlTab === 'home') {
-        return urlTab as 'home' | 'history' | 'profile';
-      }
-      const saved = sessionStorage.getItem('staff_app_employee_tab') || localStorage.getItem('staff_app_employee_tab');
-      if (saved === 'history' || saved === 'profile' || saved === 'home') {
-        return saved as 'home' | 'history' | 'profile';
-      }
+      try {
+        const urlTab = new URLSearchParams(window.location.search).get('tab');
+        if (urlTab === 'history' || urlTab === 'profile' || urlTab === 'home') {
+          return urlTab as 'home' | 'history' | 'profile';
+        }
+        const saved = sessionStorage.getItem('staff_app_employee_tab') || localStorage.getItem('staff_app_employee_tab');
+        if (saved === 'history' || saved === 'profile' || saved === 'home') {
+          return saved as 'home' | 'history' | 'profile';
+        }
+      } catch {}
     }
     return propActiveTab || 'home';
   });
@@ -262,26 +264,26 @@ export function EmployeeView({
                 <div className="relative z-10 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-indigo-600/30 ring-2 ring-white/10 shrink-0">
-                      {currentUser.fullName.charAt(0)}
+                      {(currentUser?.fullName || 'User').charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
                       <span className="text-[11px] font-semibold text-indigo-300 uppercase tracking-wider block">
                         {getGreeting()}
                       </span>
                       <h2 className="text-base font-bold tracking-tight text-white truncate">
-                        {currentUser.fullName}
+                        {currentUser?.fullName || 'Employee'}
                       </h2>
                       <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5 truncate">
-                        <span className="text-indigo-200/90 font-medium truncate">{currentUser.designationTitle}</span>
+                        <span className="text-indigo-200/90 font-medium truncate">{currentUser?.designationTitle || 'Staff'}</span>
                         <span>&bull;</span>
-                        <span className="truncate">{currentUser.departmentName}</span>
+                        <span className="truncate">{currentUser?.departmentName || 'General'}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="shrink-0 text-right">
                     <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                      ID: {currentUser.employeeId}
+                      ID: {currentUser?.employeeId || 'EMP'}
                     </span>
                     <span className="block mt-1 text-[10px] text-emerald-400 font-semibold flex items-center justify-end gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -681,15 +683,15 @@ export function EmployeeView({
               <div className="rounded-3xl bg-slate-900/80 border border-slate-800/90 p-5 shadow-xl backdrop-blur-md space-y-4">
                 <div className="flex items-center gap-3.5 pb-4 border-b border-slate-800/80">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-600/30 ring-2 ring-white/10 shrink-0">
-                    {currentUser.fullName.charAt(0)}
+                    {(currentUser?.fullName || 'User').charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-base text-white tracking-tight truncate">
-                      {currentUser.fullName}
+                      {currentUser?.fullName || 'Employee'}
                     </h3>
-                    <div className="text-xs text-indigo-300 font-medium">{currentUser.designationTitle}</div>
+                    <div className="text-xs text-indigo-300 font-medium">{currentUser?.designationTitle || 'Staff'}</div>
                     <span className="inline-block mt-1 font-mono text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700/60">
-                      ID: {currentUser.employeeId}
+                      ID: {currentUser?.employeeId || 'EMP'}
                     </span>
                   </div>
                 </div>

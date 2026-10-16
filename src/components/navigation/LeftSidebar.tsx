@@ -262,12 +262,12 @@ export function LeftSidebar({
       <div ref={menuRef} className="px-2.5 pt-2 border-t border-slate-800/80 relative">
         <button
           onClick={() => setShowProfileMenu(!showProfileMenu)}
-          title={currentUser.fullName}
+          title={currentUser?.fullName || 'User'}
           className="w-full h-11 flex items-center rounded-xl hover:bg-slate-800 transition text-left overflow-hidden group/profile"
         >
           <div className="w-11 shrink-0 flex items-center justify-center relative">
             <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
-              {currentUser.fullName.charAt(0)}
+              {(currentUser?.fullName || 'User').charAt(0).toUpperCase()}
             </div>
             {unreadCount > 0 && (
               <span className="absolute top-0 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-slate-900" />
@@ -275,10 +275,10 @@ export function LeftSidebar({
           </div>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden pl-1 flex-1 pr-2">
             <div className="font-semibold text-xs text-slate-200 truncate leading-tight">
-              {currentUser.fullName}
+              {currentUser?.fullName || 'User'}
             </div>
             <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">
-              {currentUser.role}
+              {currentUser?.role || 'EMPLOYEE'}
             </div>
           </div>
           <ChevronUp className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mr-2" />
@@ -290,13 +290,13 @@ export function LeftSidebar({
             {/* User Info Header */}
             <div className="flex items-center gap-3 pb-2.5 border-b border-slate-800">
               <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-base shadow-inner shrink-0">
-                {currentUser.fullName.charAt(0)}
+                {(currentUser?.fullName || 'User').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="font-bold text-xs text-white truncate">{currentUser.fullName}</div>
-                <div className="text-[10px] text-slate-400 truncate">{currentUser.employeeId}</div>
+                <div className="font-bold text-xs text-white truncate">{currentUser?.fullName || 'User'}</div>
+                <div className="text-[10px] text-slate-400 truncate">{currentUser?.employeeId || '---'}</div>
                 <div className="text-[10px] text-indigo-400 font-bold uppercase mt-0.5">
-                  {currentUser.role}
+                  {currentUser?.role || 'EMPLOYEE'}
                 </div>
               </div>
             </div>

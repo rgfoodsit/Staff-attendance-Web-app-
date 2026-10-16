@@ -98,7 +98,7 @@ export function DesktopManagementView({
   };
 
   // Profile Form State
-  const [profileFullName, setProfileFullName] = useState(currentUser.fullName);
+  const [profileFullName, setProfileFullName] = useState(currentUser?.fullName || '');
   const [profilePassword, setProfilePassword] = useState('');
   const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
   const [showProfilePassword, setShowProfilePassword] = useState(false);
@@ -107,7 +107,7 @@ export function DesktopManagementView({
   const [profileErrorMsg, setProfileErrorMsg] = useState('');
 
   React.useEffect(() => {
-    setProfileFullName(currentUser.fullName);
+    setProfileFullName(currentUser?.fullName || '');
   }, [currentUser]);
 
   const handleUpdateProfile = (e: React.FormEvent) => {
@@ -723,10 +723,10 @@ export function DesktopManagementView({
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-full bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-xs">
-                          {p.fullName.charAt(0)}
+                          {(p.fullName || 'User').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-semibold text-slate-900 dark:text-white">{p.fullName}</div>
+                          <div className="font-semibold text-slate-900 dark:text-white">{p.fullName || 'Employee'}</div>
                           <div className="text-[10px] text-slate-400 font-mono">{p.employeeId}</div>
                         </div>
                       </div>
@@ -1142,11 +1142,11 @@ export function DesktopManagementView({
             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div className="flex items-center gap-5">
                 <div className="w-20 h-20 rounded-2xl bg-linear-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center text-3xl font-extrabold shadow-lg shadow-indigo-500/25 ring-4 ring-white/10">
-                  {currentUser.fullName.charAt(0)}
+                  {(currentUser?.fullName || 'User').charAt(0).toUpperCase()}
                 </div>
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-2xl font-bold tracking-tight text-white">{currentUser.fullName}</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-white">{currentUser?.fullName || 'User'}</h2>
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       Active
