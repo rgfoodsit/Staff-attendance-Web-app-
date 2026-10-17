@@ -29,7 +29,8 @@ import {
   Laptop,
   LayoutDashboard,
   ClipboardCheck,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react';
 import {
   UserProfile,
@@ -154,7 +155,9 @@ export function DesktopManagementView({
   const [filterDept, setFilterDept] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('today');
+  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('today');
+  const [customStartDate, setCustomStartDate] = useState<string>(getLocalDateString());
+  const [customEndDate, setCustomEndDate] = useState<string>('');
 
   // Selected records for modals
   const [evidenceRecord, setEvidenceRecord] = useState<AttendanceRecord | null>(null);
@@ -185,6 +188,15 @@ export function DesktopManagementView({
       if (filterDept !== 'all' && r.departmentName !== filterDept) return false;
       if (filterStatus !== 'all' && r.status !== filterStatus) return false;
       if (dateRange === 'today' && r.attendanceDate !== todayStr) return false;
+      if (dateRange === 'custom') {
+        if (customStartDate && customEndDate) {
+          if (r.attendanceDate < customStartDate || r.attendanceDate > customEndDate) return false;
+        } else if (customStartDate) {
+          if (r.attendanceDate !== customStartDate) return false;
+        } else if (customEndDate) {
+          if (r.attendanceDate !== customEndDate) return false;
+        }
+      }
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchName = r.employeeName?.toLowerCase().includes(query);
@@ -193,7 +205,7 @@ export function DesktopManagementView({
       }
       return true;
     });
-  }, [attendanceRecords, filterDept, filterStatus, dateRange, searchQuery, todayStr]);
+  }, [attendanceRecords, filterDept, filterStatus, dateRange, customStartDate, customEndDate, searchQuery, todayStr]);
 
   // Dashboard KPI Metrics (PRD Section 54): Exclude HR and Admin from Total Staff count
   const staffProfiles = (profiles || []).filter((p) => p && p.role === 'employee');
@@ -208,7 +220,10 @@ export function DesktopManagementView({
 
   const handleExportExcel = async () => {
     try {
-      await exportToExcel(filteredRecords, `Attendance_Report_${dateRange}_${todayStr}.xlsx`);
+      const dateLabel = dateRange === 'custom'
+        ? (customEndDate ? `${customStartDate}_to_${customEndDate}` : customStartDate)
+        : dateRange;
+      await exportToExcel(filteredRecords, `Attendance_Report_${dateLabel}_${todayStr}.xlsx`);
     } catch (e) {
       console.error('Excel export error:', e);
     }
@@ -216,7 +231,10 @@ export function DesktopManagementView({
 
   const handleExportPDF = async () => {
     try {
-      await exportToPDF(filteredRecords, `Attendance_Report_${dateRange}_${todayStr}.pdf`);
+      const dateLabel = dateRange === 'custom'
+        ? (customEndDate ? `${customStartDate}_to_${customEndDate}` : customStartDate)
+        : dateRange;
+      await exportToPDF(filteredRecords, `Attendance_Report_${dateLabel}_${todayStr}.pdf`);
     } catch (e) {
       console.error('PDF export error:', e);
     }
@@ -560,25 +578,82 @@ export function DesktopManagementView({
               <option value="forgotten_checkout">Forgot to check-out</option>
             </select>
 
-            {/* Date Range */}
+            {/* Date Range Mode */}
             <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl text-xs">
               <button
+                type="button"
                 onClick={() => setDateRange('today')}
-                className={`px-3 py-1 rounded-lg font-medium transition ${
-                  dateRange === 'today' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-xs' : 'text-slate-500'
+                className={`px-3 py-1.5 rounded-lg font-medium transition ${
+                  dateRange === 'today'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                 }`}
               >
                 Today
               </button>
               <button
+                type="button"
+                onClick={() => {
+                  setDateRange('custom');
+                  if (!customStartDate) setCustomStartDate(todayStr);
+                }}
+                className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 ${
+                  dateRange === 'custom'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Calendar</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setDateRange('all')}
-                className={`px-3 py-1 rounded-lg font-medium transition ${
-                  dateRange === 'all' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-xs' : 'text-slate-500'
+                className={`px-3 py-1.5 rounded-lg font-medium transition ${
+                  dateRange === 'all'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                 }`}
               >
                 All Records
               </button>
             </div>
+
+            {/* Calendar Custom Date Picker */}
+            {dateRange === 'custom' && (
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 px-2.5 py-1 rounded-xl text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Date:</span>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="px-2 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 dark:[color-scheme:dark]"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-400">to</span>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    min={customStartDate || undefined}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    title="Optional: select end date for date range"
+                    className="px-2 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 dark:[color-scheme:dark]"
+                  />
+                </div>
+                {customEndDate && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomEndDate('')}
+                    title="Clear end date (filter single day)"
+                    className="text-slate-400 hover:text-rose-500 p-0.5 rounded transition"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Today's Attendance Table (PRD Section 55) */}
@@ -586,7 +661,14 @@ export function DesktopManagementView({
             <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white text-sm">Attendance Records</h3>
-                <p className="text-xs text-slate-500">Showing {filteredRecords.length} records</p>
+                <p className="text-xs text-slate-500">
+                  Showing {filteredRecords.length} records
+                  {dateRange === 'custom' && customStartDate && (
+                    <span className="ml-1 text-indigo-600 dark:text-indigo-400 font-medium">
+                      ({formatDate(customStartDate)}{customEndDate ? ` – ${formatDate(customEndDate)}` : ''})
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
 

@@ -1,15 +1,30 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     const supabase = createAdminClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from('attendance_records')
       .select('*, profiles:profile_id(full_name, employee_id, departments:department_id(name), designations:designation_id(title))')
       .order('attendance_date', { ascending: false });
 
-    if (error) throw error;
+    if (date) {
+      query = query.eq('attendance_date', date);
+    } else if (startDate && endDate) {
+      query = query.gte('attendance_date', startDate).lte('attendance_date', endDate);
+    } else if (startDate) {
+      query = query.gte('attendance_date', startDate);
+    } else if (endDate) {
+      query = query.lte('attendance_date', endDate);
+    }
+
+    const { data, error } = await query;
 
     const formatted = (data || []).map((r: any) => ({
       id: r.id,
