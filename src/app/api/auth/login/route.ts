@@ -90,6 +90,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (!profileData.is_active) {
+      return NextResponse.json(
+        { error: 'This employee account has been deactivated. Please contact HR or Admin.' },
+        { status: 403 }
+      );
+    }
+
     const formattedUser = {
       id: profileData.id,
       employeeId: profileData.employee_id,

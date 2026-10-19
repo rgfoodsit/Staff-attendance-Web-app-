@@ -67,7 +67,8 @@ export class AppStore {
       user.employeeId !== 'EMP' &&
       typeof user.employeeId === 'string' &&
       user.employeeId.trim().length > 0 &&
-      ['employee', 'hr', 'admin'].includes(user.role)
+      ['employee', 'hr', 'admin'].includes(user.role) &&
+      user.isActive !== false
     );
   }
 

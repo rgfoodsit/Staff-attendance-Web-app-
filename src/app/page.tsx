@@ -296,7 +296,7 @@ export default function Home() {
               const liveUser = valid.find(
                 (p: any) => p.id === stored.id || (p.employeeId && p.employeeId.toUpperCase() === stored.employeeId?.toUpperCase())
               );
-              if (liveUser && AppStore.isValidUser(liveUser)) {
+              if (liveUser && AppStore.isValidUser(liveUser) && liveUser.isActive !== false) {
                 setCurrentUser(liveUser);
                 AppStore.setCurrentUser(liveUser);
               } else {

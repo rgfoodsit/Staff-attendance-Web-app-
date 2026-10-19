@@ -12,6 +12,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Profile ID is required' }, { status: 400 });
     }
 
+    // Verify employee account is active
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('id, is_active')
+      .eq('id', profileId)
+      .maybeSingle();
+
+    if (userProfile && userProfile.is_active === false) {
+      return NextResponse.json(
+        { error: 'This employee account has been deactivated. Check-in is disabled.' },
+        { status: 403 }
+      );
+    }
+
     const today = getLocalDateString();
 
     // 1. Check existing record for today

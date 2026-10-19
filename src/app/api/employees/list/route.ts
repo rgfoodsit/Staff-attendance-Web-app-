@@ -32,7 +32,7 @@ export async function GET() {
         designationId: p.designation_id,
         designationTitle: p.designations?.title || 'Staff',
         role: p.role,
-        isActive: p.is_active,
+        isActive: p.is_active !== false,
         assignedPassword: meta.assigned_password || meta.initial_password || '',
         createdAt: p.created_at,
         updatedAt: p.updated_at,

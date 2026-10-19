@@ -150,6 +150,7 @@ export function DesktopManagementView({
   // Employee Modal State
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<UserProfile | null>(null);
+  const [togglingEmployeeId, setTogglingEmployeeId] = useState<string | null>(null);
 
   // Filter States
   const [filterDept, setFilterDept] = useState('all');
@@ -336,9 +337,11 @@ export function DesktopManagementView({
     designationTitle: string;
     role: UserRole;
     password?: string;
+    isActive?: boolean;
   }) => {
     let updatedProfiles: UserProfile[];
     if (editingEmployee) {
+      const targetActive = userData.isActive !== undefined ? userData.isActive : editingEmployee.isActive;
       try {
         fetch('/api/employees/update', {
           method: 'POST',
@@ -351,6 +354,7 @@ export function DesktopManagementView({
             designationId: userData.designationId,
             role: userData.role,
             password: userData.password,
+            isActive: targetActive,
           }),
         }).catch((e) => console.error('Failed to sync employee update to server:', e));
       } catch (err) {
@@ -368,6 +372,7 @@ export function DesktopManagementView({
             designationId: userData.designationId,
             designationTitle: userData.designationTitle,
             role: userData.role,
+            isActive: targetActive,
             assignedPassword: userData.password || p.assignedPassword,
             updatedAt: new Date().toISOString(),
           };
@@ -417,14 +422,72 @@ export function DesktopManagementView({
     }
   };
 
-  const handleToggleEmployeeActive = (profileId: string) => {
+  const handleToggleEmployeeActive = async (profileId: string) => {
+    if (profileId === currentUser.id) {
+      alert('You cannot deactivate your own administrative account.');
+      return;
+    }
+
+    const currentEmp = (profiles || []).find((p) => p.id === profileId);
+    if (!currentEmp) return;
+    const nextActive = !currentEmp.isActive;
+
+    setTogglingEmployeeId(profileId);
+
+    // Optimistically update local view & store
     const updated = (profiles || []).filter((p): p is UserProfile => Boolean(p && p.id)).map((p) => {
       if (p.id === profileId) {
-        return { ...p, isActive: !p.isActive, updatedAt: new Date().toISOString() };
+        return { ...p, isActive: nextActive, updatedAt: new Date().toISOString() };
       }
       return p;
     });
     onSaveProfiles(updated);
+
+    try {
+      const res = await fetch('/api/employees/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: profileId,
+          isActive: nextActive,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to update employee status in the database. Reverting.');
+        // Revert on failure
+        const reverted = (profiles || []).filter((p): p is UserProfile => Boolean(p && p.id)).map((p) => {
+          if (p.id === profileId) {
+            return { ...p, isActive: currentEmp.isActive };
+          }
+          return p;
+        });
+        onSaveProfiles(reverted);
+      } else if (data.profile) {
+        // Synchronize with exact database record
+        const synced = (profiles || []).filter((p): p is UserProfile => Boolean(p && p.id)).map((p) => {
+          if (p.id === profileId) {
+            return { ...p, isActive: data.profile.isActive, updatedAt: data.profile.updatedAt };
+          }
+          return p;
+        });
+        onSaveProfiles(synced);
+      }
+    } catch (err: any) {
+      console.error('Network error toggling employee status:', err);
+      alert('Network error connecting to the server. Please check your connection.');
+      const reverted = (profiles || []).filter((p): p is UserProfile => Boolean(p && p.id)).map((p) => {
+        if (p.id === profileId) {
+          return { ...p, isActive: currentEmp.isActive };
+        }
+        return p;
+      });
+      onSaveProfiles(reverted);
+    } finally {
+      setTogglingEmployeeId(null);
+    }
   };
 
   return (
@@ -842,13 +905,25 @@ export function DesktopManagementView({
                         </button>
                         <button
                           onClick={() => handleToggleEmployeeActive(p.id)}
+                          disabled={p.id === currentUser.id || togglingEmployeeId === p.id}
                           className={`px-2.5 py-1 text-xs font-medium rounded-lg transition ${
-                            p.isActive
+                            p.id === currentUser.id
+                              ? 'opacity-40 cursor-not-allowed text-slate-400'
+                              : togglingEmployeeId === p.id
+                              ? 'opacity-60 cursor-wait text-slate-400 bg-slate-100 dark:bg-slate-800'
+                              : p.isActive
                               ? 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40'
                               : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
                           }`}
+                          title={
+                            p.id === currentUser.id
+                              ? 'You cannot deactivate your own account'
+                              : p.isActive
+                              ? 'Deactivate employee'
+                              : 'Reactivate employee'
+                          }
                         >
-                          {p.isActive ? 'Deactivate' : 'Reactivate'}
+                          {togglingEmployeeId === p.id ? 'Updating...' : p.isActive ? 'Deactivate' : 'Reactivate'}
                         </button>
                       </div>
                     </td>

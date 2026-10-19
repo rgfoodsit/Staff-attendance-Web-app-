@@ -21,6 +21,7 @@ interface EmployeeModalProps {
     designationTitle: string;
     role: UserRole;
     password?: string;
+    isActive?: boolean;
   }) => void;
 }
 
@@ -79,6 +80,7 @@ export function EmployeeModal({
   const [departmentId, setDepartmentId] = useState(getResolvedDeptId());
   const [designationId, setDesignationId] = useState(getResolvedDesigId());
   const [role, setRole] = useState<UserRole>(resolvedRole);
+  const [isActive, setIsActive] = useState<boolean>(editingUser ? editingUser.isActive !== false : true);
   const [password, setPassword] = useState(existingPassword);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export function EmployeeModal({
       setDepartmentId(getResolvedDeptId());
       setDesignationId(getResolvedDesigId());
       setRole(resolvedRole);
+      setIsActive(editingUser ? editingUser.isActive !== false : true);
       setPassword(existingPassword);
       setShowPassword(false);
       setError(null);
@@ -127,6 +130,7 @@ export function EmployeeModal({
       designationTitle: selectedDesig?.title || 'Staff',
       role: isAdmin ? role : 'employee', // Only Admin can assign/change roles (PRD #9)
       password: password.trim() || undefined,
+      isActive,
     });
     onClose();
   };
@@ -257,6 +261,27 @@ export function EmployeeModal({
           ) : (
             <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-[11px] text-slate-500">
               Role: <strong className="uppercase text-slate-800 dark:text-slate-200">Employee</strong> (Role changes restricted to Admin per PRD #9).
+            </div>
+          )}
+
+          {/* Account Status (Active / Deactivated) */}
+          {editingUser && (
+            <div>
+              <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                Account Status
+              </label>
+              <select
+                value={isActive ? 'active' : 'deactivated'}
+                onChange={(e) => setIsActive(e.target.value === 'active')}
+                className={`w-full px-3 py-2 rounded-xl border font-semibold ${
+                  isActive
+                    ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
+                    : 'border-rose-300 bg-rose-50/50 text-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-800'
+                }`}
+              >
+                <option value="active">Active (Can log in & record attendance)</option>
+                <option value="deactivated">Deactivated (Suspended - cannot log in)</option>
+              </select>
             </div>
           )}
 
